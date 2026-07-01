@@ -1,0 +1,123 @@
+{
+  "name": "المنصة التعليمية الذكية",
+  "short_name": "تعليمي الذكي",
+  "description": "منصة تعليمية تفاعلية تعمل بدون إنترنت لبناء وإدارة الاختبارات. تدعم الربط المباشر بين الأجهزة (P2P) لمشاركة بنك الأسئلة.",
+  "start_url": "/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["education", "productivity", "utilities", "games"],
+  "prefer_related_applications": false,
+  "id": "smart-learning-platform-v2",
+  "shortcuts": [
+    {
+      "name": "تحدي سريع",
+      "short_name": "تحدي",
+      "description": "ابدأ تحدياً سريعاً مباشرة",
+      "url": "./index.html?mode=practice",
+      "icons": [
+        { "src": "assets/icons/shortcut-practice-96.png", "sizes": "96x96", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "اختبر معلوماتك",
+      "short_name": "اختبار",
+      "description": "ابدأ اختباراً رسمياً",
+      "url": "./index.html?mode=test",
+      "icons": [
+        { "src": "assets/icons/shortcut-test-96.png", "sizes": "96x96", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "إدارة الأسئلة",
+      "short_name": "أسئلة",
+      "description": "أدر أسئلتك التعليمية",
+      "url": "./index.html?mode=manage",
+      "icons": [
+        { "src": "assets/icons/shortcut-manage-96.png", "sizes": "96x96", "type": "image/png" }
+      ]
+    }
+  ],
+  "icons": [
+    { "src": "assets/icons/icon-72.png", "sizes": "72x72", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-96.png", "sizes": "96x96", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-144.png", "sizes": "144x144", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-152.png", "sizes": "152x152", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-384.png", "sizes": "384x384", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/maskable-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "assets/icons/maskable-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    {
+      "src": "assets/screenshots/screenshot-1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "الشاشة الرئيسية"
+    },
+    {
+      "src": "assets/screenshots/screenshot-2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "وضع التحدي السريع"
+    },
+    {
+      "src": "assets/screenshots/screenshot-3.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "وضع الاختبار"
+    },
+    {
+      "src": "assets/screenshots/screenshot-wide-1.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "الشاشة الرئيسية - وضع سطح المكتب"
+    }
+  ],
+  "related_applications": [],
+  "protocol_handlers": [
+    {
+      "protocol": "web+quiz",
+      "url": "./index.html?action=%s"
+    }
+  ],
+  "share_target": {
+    "action": "./index.html",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "quiz_files",
+          "accept": ["text/plain", "application/json"]
+        }
+      ]
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "./index.html",
+      "accept": {
+        "text/plain": [".txt"],
+        "application/json": [".json"]
+      }
+    }
+  ],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  }
+}
