@@ -21,6 +21,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            isShrinkResources = false
+            // The requested deliverable is an installable assembleRelease APK.
+            // The standard Android debug keystore is used only for this reproducible test release.
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
