@@ -104,6 +104,8 @@ window.AudioManager = window.AudioManager || {};
                 if (this.audioContext && this.audioContext.state === 'suspended') {
                     this.audioContext.resume().then(() => {
                         console.log('✅ AudioContext تم استئنافه');
+                    }).catch(() => {
+                        // رفض التشغيل قبل إيماءة المستخدم طبيعي في WebView ولا يُعرض للمستخدم كخطأ.
                     });
                 }
                 Object.values(this.audioElements).forEach(item => {

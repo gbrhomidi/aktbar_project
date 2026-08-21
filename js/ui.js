@@ -20,14 +20,16 @@ window.UI = window.UI || {};
         _sidebarDisabled: false,
         _modalObservers: [],
 
-        init() {
+        async init() {
             console.log('🖥️ تهيئة واجهة المستخدم النهائية...');
             this.cacheElements();
-            this.updateQuickStats();
-            this.addDefaultQuestionsIfEmpty().then(() => {
-                this.loadQuestionsList();
-                this.refreshAllCategorySelects();
-            });
+            try {
+                await this.updateQuickStats();
+                await this.loadQuestionsList();
+                await this.refreshAllCategorySelects();
+            } catch (error) {
+                console.warn('⚠️ تعذر تحميل واجهة الأسئلة:', error);
+            }
             this.setupModalSidebarControl();
             this.bindEvents();
             console.log('✅ واجهة المستخدم جاهزة');
@@ -994,23 +996,6 @@ window.UI = window.UI || {};
                 const count = await DB.questions.count();
                 document.getElementById('bank-questions-count').textContent = count;
             } catch(e){ console.warn(e); }
-        },
-
-        async addDefaultQuestionsIfEmpty(){
-            const count = await DB.questions.count();
-            if(count===0){
-                const defaults = [
-                    { text:'كم عدد قارات العالم؟', correct:'7', wrongs:['5','6','8'], category:'جغرافيا', unit:1, lesson:1, difficulty:'A' },
-                    { text:'ما عاصمة فرنسا؟', correct:'باريس', wrongs:['لندن','برلين','مدريد'], category:'جغرافيا', unit:1, lesson:2, difficulty:'A' },
-                    { text:'مؤسس مايكروسوفت؟', correct:'بيل غيتس', wrongs:['ستيف جوبز','مارك زوكربيرغ','جيف بيزوس'], category:'تقنية', unit:2, lesson:1, difficulty:'B' }
-                ];
-                for(let i=0;i<defaults.length;i++){
-                    await DB.questions.add({...defaults[i], order:Date.now()+i});
-                    const exists = await DB.categories.where('name').equalsIgnoreCase(defaults[i].category).count();
-                    if(exists===0) await DB.categories.add({ name:defaults[i].category, createdAt:new Date().toISOString() });
-                }
-                await this.refreshAllCategorySelects();
-            }
         },
 
         async refreshAllCategorySelects(){

@@ -47,6 +47,9 @@ if (window.__APP_INITIALIZED__) {
             console.log(`📦 الإصدار: ${this.state.version}`);
 
             try {
+                if (global.DB_READY && typeof global.DB_READY.then === 'function') {
+                    await global.DB_READY;
+                }
                 await this.checkEnvironment();
                 await this.loadSettings();
                 this.applyInitialSettings();
@@ -202,7 +205,7 @@ if (window.__APP_INITIALIZED__) {
         onAppReady() {
             console.log('✅ التطبيق جاهز للاستخدام');
             this.showFirstTimeTips();
-            this.maybeShowFirstRunImportPrompt();
+            this.maybeShowFirstRunImportPrompt().catch(error => console.warn('⚠️ تعذر إظهار إرشاد أول تشغيل:', error));
             this.updatePlayerInfo();
             this.updateQuestionCount();
             if (typeof AudioManager !== 'undefined' && !AudioManager.isMuted) {

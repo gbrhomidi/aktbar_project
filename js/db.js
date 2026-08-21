@@ -656,7 +656,7 @@ window.DBBackup = window.DBBackup || {};
     global.DBBackup = DBBackup;
     global.safeResetDatabase = safeResetDatabase;
 
-    (async function initialize() {
+    global.DB_READY = (async function initialize() {
         try {
             await initDexie();
             await Settings.load();
@@ -665,8 +665,10 @@ window.DBBackup = window.DBBackup || {};
                 window.AppVersion.init();
             }
             console.log('✅ قاعدة البيانات جاهزة (الإصدار 4)');
+            return true;
         } catch (e) {
             console.warn('⚠️ خطأ في تهيئة قاعدة البيانات:', e);
+            return false;
         }
     })();
 
