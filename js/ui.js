@@ -1037,7 +1037,18 @@ window.UI = window.UI || {};
         endChallenge(){ if(typeof Game !== 'undefined') Game.endPracticeRound(); },
         endTest(){ if(typeof Game !== 'undefined') Game.submitTest(false); },
         pauseTest(){ if(typeof Game !== 'undefined') Game.pauseTest(); },
-        closeApp(){ if(confirm(t('close_app_confirm', 'هل تريد إغلاق التطبيق؟'))) window.location.href='about:blank'; }
+        closeApp(){
+            try {
+                if (window.AndroidBridge && typeof window.AndroidBridge.closeApp === 'function') {
+                    window.AndroidBridge.closeApp();
+                    return;
+                }
+            } catch (error) {
+                console.warn('[closeApp] Android close bridge failed', error);
+            }
+            if (window.opener) window.close();
+            else window.location.replace('about:blank');
+        }
     };
 
     global.UI = UI;

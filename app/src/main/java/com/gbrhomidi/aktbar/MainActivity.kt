@@ -243,6 +243,16 @@ class MainActivity : ComponentActivity() {
         @JavascriptInterface fun getArchitecture(): String = "legacy-html-css-js"
 
         @JavascriptInterface
+        fun closeApp() {
+            runOnUiThread {
+                if (!isFinishing) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) finishAndRemoveTask()
+                    else finish()
+                }
+            }
+        }
+
+        @JavascriptInterface
         fun saveTextFile(fileName: String, content: String, mimeType: String): Boolean = runCatching {
             val safeName = fileName.replace(Regex("[^A-Za-z0-9._-]"), "_").ifBlank { "smart-learning-export.json" }
             val resolver = contentResolver

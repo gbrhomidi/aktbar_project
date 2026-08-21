@@ -12,7 +12,7 @@
 
 ## الاختبار التفاعلي
 
-تم تنفيذ 51 حالة اختبار ونجحت جميعها دون فشل أو أخطاء runtime:
+تم تنفيذ 52 حالة اختبار ونجحت جميعها دون فشل أو أخطاء runtime:
 
 | المجال | الحالات التي نجحت |
 |---|---|
@@ -24,7 +24,7 @@
 | قاعدة البيانات | إضافة وقراءة وحذف سؤال واستعادة العدد السابق |
 | الإعدادات | الحفظ والقراءة، تغيير الصعوبة، زيادة قيمة الوقت |
 | الشبكة | تهيئة وضع الأستاذ ووضع الطالب وإغلاقهما |
-| البرمجيات الداخلية | تهيئة Game، parser، Android bridge fallback، وعدم وجود runtime errors |
+| البرمجيات الداخلية | تهيئة Game، parser، Android bridge fallback، ومسار closeApp دون confirm وعدم وجود runtime errors |
 
 ## الخطأ الذي تم اكتشافه وإصلاحه
 
@@ -35,6 +35,12 @@ const manageModal = document.getElementById('manage-modal');
 ```
 
 وتم تطبيق الإصلاح في ملف المصدر ونسخة WebView المضمنة مع الحفاظ على تطابقهما.
+
+## إصلاح زر إغلاق التطبيق
+
+كان `UI.closeApp()` يستدعي `confirm()` ثم يغيّر `window.location.href` إلى `about:blank`. داخل Android WebView أدى ذلك إلى ظهور رسالة منسوبة إلى صفحة `appassets.androidplatform.net` بدل إنهاء التطبيق. أزيلت نافذة التأكيد من مسار Android، وأصبح الزر يستدعي `AndroidBridge.closeApp()` مباشرة. يطبّق NativeBridge الدالة على UI thread باستخدام `finishAndRemoveTask()`، مع fallback محدود للمتصفح خارج Android.
+
+تم اختبار المسار عبر جسر Android وهمي داخل الاختبار التفاعلي، ونجح الاستدعاء مرة واحدة مع صفر استدعاءات لـ `confirm`.
 
 ## القيود
 
