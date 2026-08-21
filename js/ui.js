@@ -584,12 +584,16 @@ window.UI = window.UI || {};
             const questions = await DB.questions.where('category').equals(categoryName).toArray();
             if(!questions.length){ this.showToast(`⚠️ ${t('no_questions_in_category', 'لا توجد أسئلة في')} "${categoryName}"`); return; }
             const data = { version:3, exportedAt:new Date().toISOString(), category:categoryName, count:questions.length, questions: questions.map(q=>({ text:q.text, correct:q.correct, wrongs:q.wrongs, category:q.category, unit:q.unit||1, lesson:q.lesson||1, difficulty:q.difficulty||'B', image:q.image||null })) };
-            const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `questions_${categoryName}_${Date.now()}.json`;
-            a.click();
-            URL.revokeObjectURL(a.href);
+            const fileName = `questions_${categoryName}_${Date.now()}.json`;
+            const json = JSON.stringify(data, null, 2);
+            if (!(typeof AndroidFileBridge !== 'undefined' && AndroidFileBridge.saveText(fileName, json, 'application/json'))) {
+                const blob = new Blob([json], {type:'application/json'});
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = fileName;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }
             this.showToast(`✅ ${t('exported_count', 'تم تصدير')} ${questions.length} ${t('questions', 'سؤال')}`);
         },
 
@@ -878,10 +882,13 @@ window.UI = window.UI || {};
         downloadQR(){ 
             const canvas = document.querySelector('#qrcode-container canvas'); 
             if(canvas){ 
-                const a=document.createElement('a'); 
-                a.download='smart-learning-qr.png'; 
-                a.href=canvas.toDataURL(); 
-                a.click(); 
+                const dataUrl = canvas.toDataURL('image/png');
+                if (!(typeof AndroidFileBridge !== 'undefined' && AndroidFileBridge.saveDataUrl('smart-learning-qr.png', dataUrl, 'image/png'))) {
+                    const a=document.createElement('a');
+                    a.download='smart-learning-qr.png';
+                    a.href=dataUrl;
+                    a.click();
+                }
             } else {
                 this.showToast('❌ ' + t('no_qr_to_download', 'لا يوجد رمز QR لتحميله'), '⚠️');
             }

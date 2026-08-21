@@ -482,10 +482,14 @@ window.DBBackup = window.DBBackup || {};
             try {
                 const questions = await global.DB.questions.toArray();
                 const data = { version: 3, exportedAt: new Date().toISOString(), count: questions.length, questions };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = `smartlearning_backup_${Date.now()}.json`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                const fileName = `smartlearning_backup_${Date.now()}.json`;
+                const json = JSON.stringify(data, null, 2);
+                if (!(typeof AndroidFileBridge !== 'undefined' && AndroidFileBridge.saveText(fileName, json, 'application/json'))) {
+                    const blob = new Blob([json], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = fileName;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                }
                 if (typeof UI !== 'undefined' && UI.showToast) UI.showToast(`✅ تم تصدير ${questions.length} سؤال`);
             } catch (e) { console.warn('⚠️ خطأ في التصدير:', e); }
         },
@@ -498,10 +502,14 @@ window.DBBackup = window.DBBackup || {};
                     return false;
                 }
                 const data = { version: 3, exportedAt: new Date().toISOString(), category: categoryName, count: questions.length, questions };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a'); a.href = url; a.download = `smartlearning_${categoryName}_${Date.now()}.json`;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                const fileName = `smartlearning_${categoryName}_${Date.now()}.json`;
+                const json = JSON.stringify(data, null, 2);
+                if (!(typeof AndroidFileBridge !== 'undefined' && AndroidFileBridge.saveText(fileName, json, 'application/json'))) {
+                    const blob = new Blob([json], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = fileName;
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+                }
                 if (typeof UI !== 'undefined' && UI.showToast) UI.showToast(`✅ تم تصدير ${questions.length} سؤال من تصنيف "${categoryName}"`);
                 return true;
             } catch (e) { console.warn('⚠️ خطأ في التصدير حسب التصنيف:', e); return false; }
