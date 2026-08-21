@@ -808,6 +808,7 @@
         // ======== MODAL CLOSE HANDLING مع إطلاق حدث مخصص ========
         function handleModalClose(modalId) {
             const modal = document.getElementById(modalId);
+            const manageModal = document.getElementById('manage-modal');
             if (!modal) return;
             modal.classList.remove('active');
 
