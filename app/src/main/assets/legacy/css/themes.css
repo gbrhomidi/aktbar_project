@@ -1,0 +1,599 @@
+/* =====================================================
+   الثيمات الاحترافية - إصدار محسّن ومُنظّم
+   ألوان بنسبة 8-12%، إشعاع خفيف ومتوازن
+   فصل تام بين الداكن والفاتح مع تناسق عالمي
+   ===================================================== */
+
+:root {
+    --success: #10b981;
+    --success-rgb: 16, 185, 129;
+    --success-bg: rgba(16, 185, 129, 0.10);
+    --error: #ef4444;
+    --error-rgb: 239, 68, 68;
+    --error-bg: rgba(239, 68, 68, 0.10);
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-full: 9999px;
+    --transition: 0.2s ease;
+
+    /* نسب شفافية موحدة ومنخفضة */
+    --surface-alpha: 0.06;
+    --surface-hover-alpha: 0.10;
+    --border-alpha: 0.12;
+    --border-strong-alpha: 0.22;
+    --glow-alpha: 0.08;
+    --glow-strong-alpha: 0.15;
+}
+
+/* ========== الثيمات الداكنة - ألوان مُخفّضة الكثافة ========== */
+[data-theme]:not([data-theme="light"]) {
+    --bg: #0c0e14;
+    --bg-secondary: #12151d;
+    --bg-tertiary: #181c27;
+    --bg-modal: rgba(16, 19, 26, 0.97);
+    --surface: rgba(255, 255, 255, 0.04);
+    --surface-hover: rgba(255, 255, 255, 0.07);
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --text-primary: #e2e4e9;
+    --text-secondary: #9aa0b0;
+    --text-muted: #6b7280;
+    --shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.15);
+    --glow-intensity: 0.12;
+
+    /* أزرار القائمة الجانبية في الداكن - أبيض مائل للبيج */
+    --sidebar-btn-bg: rgba(245, 240, 230, 0.06);
+    --sidebar-btn-hover: rgba(245, 240, 230, 0.12);
+    --sidebar-btn-text: #f5f0e6;
+    --sidebar-btn-icon: #e8dcc8;
+
+    /* إشعاع خفيف ومتوازن */
+    --glow: radial-gradient(circle at 50% 0%, rgba(var(--accent-rgb), 0.10), transparent 70%);
+    --glow-strong: 0 0 12px rgba(var(--accent-rgb), 0.15);
+    --glow-weak: 0 0 6px rgba(var(--accent-rgb), 0.08);
+    --shadow-glow: 0 4px 20px rgba(var(--accent-rgb), 0.08);
+    --shadow-glow-strong: 0 6px 24px rgba(var(--accent-rgb), 0.12);
+
+    /* نصوص العناوين - درجات أقل تشبعاً */
+    --heading-color: var(--accent-light);
+}
+
+/* الثيمات الداكنة - الألوان المميزة (مُخفّضة الكثافة) */
+[data-theme="blue-gold"]:not([data-theme="light"]) {
+    --accent: #3b82f6;
+    --accent-light: #60a5fa;
+    --accent-dark: #2563eb;
+    --accent-rgb: 59, 130, 246;
+}
+[data-theme="emerald-gold"]:not([data-theme="light"]) {
+    --accent: #10b981;
+    --accent-light: #34d399;
+    --accent-dark: #059669;
+    --accent-rgb: 16, 185, 129;
+}
+[data-theme="ruby-gold"]:not([data-theme="light"]) {
+    --accent: #ef4444;
+    --accent-light: #f87171;
+    --accent-dark: #dc2626;
+    --accent-rgb: 239, 68, 68;
+}
+[data-theme="amethyst-gold"]:not([data-theme="light"]) {
+    --accent: #8b5cf6;
+    --accent-light: #a78bfa;
+    --accent-dark: #7c3aed;
+    --accent-rgb: 139, 92, 246;
+}
+[data-theme="charcoal-gold"]:not([data-theme="light"]) {
+    --accent: #64748b;
+    --accent-light: #94a3b8;
+    --accent-dark: #475569;
+    --accent-rgb: 100, 116, 139;
+}
+[data-theme="ocean-gold"]:not([data-theme="light"]) {
+    --accent: #06b6d4;
+    --accent-light: #22d3ee;
+    --accent-dark: #0891b2;
+    --accent-rgb: 6, 182, 212;
+}
+[data-theme="sunset-gold"]:not([data-theme="light"]) {
+    --accent: #f97316;
+    --accent-light: #fb923c;
+    --accent-dark: #ea580c;
+    --accent-rgb: 249, 115, 22;
+}
+[data-theme="forest-gold"]:not([data-theme="light"]) {
+    --accent: #22c55e;
+    --accent-light: #4ade80;
+    --accent-dark: #16a34a;
+    --accent-rgb: 34, 197, 94;
+}
+[data-theme="midnight-gold"]:not([data-theme="light"]) {
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --accent-dark: #4f46e5;
+    --accent-rgb: 99, 102, 241;
+}
+[data-theme="rose-gold"]:not([data-theme="light"]) {
+    --accent: #ec4899;
+    --accent-light: #f472b6;
+    --accent-dark: #db2777;
+    --accent-rgb: 236, 72, 153;
+}
+[data-theme="neon-gold"]:not([data-theme="light"]) {
+    --accent: #00ff88;
+    --accent-light: #55ffaa;
+    --accent-dark: #00cc66;
+    --accent-rgb: 0, 255, 136;
+}
+[data-theme="cosmic-gold"]:not([data-theme="light"]) {
+    --accent: #d946ef;
+    --accent-light: #e879f9;
+    --accent-dark: #c026d3;
+    --accent-rgb: 217, 70, 239;
+}
+
+/* ========== الوضع الفاتح - بيج دافئ مع تدرجات بنية ========== */
+[data-theme="light"] {
+    --bg: #f5efe6;
+    --bg-secondary: #ebe4d8;
+    --bg-tertiary: #e0d6c6;
+    --bg-modal: rgba(245, 239, 230, 0.98);
+    --surface: rgba(139, 105, 20, 0.04);
+    --surface-hover: rgba(139, 105, 20, 0.08);
+    --border: rgba(30, 58, 95, 0.18);
+    --border-strong: rgba(30, 58, 95, 0.32);
+    --border-element: rgba(30, 58, 95, 0.25);
+    --border-container: #1e3a5f;
+    --border-container-glow: 0 0 8px rgba(30, 58, 95, 0.25);
+    --text-primary: #2c2416;
+    --text-secondary: #5a4d3a;
+    --text-muted: #8b7355;
+    --heading-color: #1e3a5f;
+
+    /* أزرار القائمة الجانبية في الفاتح - بيج دافئ وإطارات بنية متدرجة */
+    --sidebar-btn-bg: #f5efe6;        /* لون بيج دافئ */
+    --sidebar-btn-hover: #e8dccc;     /* بيج أغمق قليلاً عند التحويم */
+    --sidebar-btn-text: #5a3e1b;      /* بني داكن للنص */
+    --sidebar-btn-icon: #8b5a2b;      /* بني ذهبي للأيقونات */
+
+    --shadow: 0 4px 16px rgba(60, 40, 20, 0.06);
+    --shadow-sm: 0 2px 6px rgba(60, 40, 20, 0.04);
+
+    /* ألوان مميزة ذهبية بنية دافئة */
+    --accent: #8b6914;
+    --accent-light: #a67c2e;
+    --accent-dark: #6b5210;
+    --accent-rgb: 139, 105, 20;
+
+    /* إشعاع خفيف كحلي */
+    --glow: radial-gradient(circle at 50% 0%, rgba(30, 58, 95, 0.06), transparent 70%);
+    --glow-strong: 0 0 12px rgba(30, 58, 95, 0.12);
+    --glow-weak: 0 0 6px rgba(30, 58, 95, 0.06);
+    --shadow-glow: 0 4px 16px rgba(30, 58, 95, 0.06);
+    --shadow-glow-strong: 0 6px 20px rgba(30, 58, 95, 0.10);
+}
+
+/* ========== أنماط القائمة الجانبية المشتركة ========== */
+.sidebar-btn {
+    background-color: var(--sidebar-btn-bg);
+    color: var(--sidebar-btn-text);
+    border: 1px solid rgba(var(--accent-rgb), 0.15);
+    transition: all 0.25s ease;
+}
+.sidebar-btn i,
+.sidebar-btn .fas,
+.sidebar-btn .far {
+    color: var(--sidebar-btn-icon);
+}
+.sidebar-btn:hover {
+    background-color: var(--sidebar-btn-hover);
+    border-color: rgba(var(--accent-rgb), 0.30);
+    transform: translateY(-1px);
+}
+
+/* ========== إطارات القائمة الجانبية في الوضع الفاتح (بني متدرج) ========== */
+[data-theme="light"] .sidebar {
+    border: 1px solid #cbb896;           /* بني فاتح */
+    border-right: 3px solid #8b5a2b;     /* بني غامق على الحافة اليمنى */
+    box-shadow: -4px 0 24px rgba(100, 60, 20, 0.15);
+}
+
+[data-theme="light"] .sidebar-btn {
+    background-color: var(--sidebar-btn-bg);
+    border: 1px solid #d4bc9a;           /* بني متدرج */
+    color: var(--sidebar-btn-text);
+}
+
+[data-theme="light"] .sidebar-btn:hover {
+    background-color: var(--sidebar-btn-hover);
+    border-color: #b88b5c;
+    box-shadow: 0 2px 8px rgba(100, 60, 20, 0.2);
+}
+
+/* ========== مودال التصدير في الوضع الفاتح - نصوص سوداء مشعة ========== */
+[data-theme="light"] #export-guide-modal p,
+[data-theme="light"] #export-guide-modal li,
+[data-theme="light"] #export-guide-modal .modal-content {
+    color: #1e1a14 !important;
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] #export-guide-modal .modal-content {
+    background: #fef9f0;
+    border-color: #cbb896;
+}
+
+/* ========== الخلفيات العامة ========== */
+body, #home-screen {
+    background-color: var(--bg);
+    color: var(--text-primary);
+    transition: background-color 0.35s ease, color 0.35s ease;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100vh;
+    background: var(--glow);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ========== المودالات ========== */
+.modal-content {
+    background-color: var(--bg-modal);
+    border: 1px solid var(--border-strong);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* ========== البطاقات والعناصر التفاعلية ========== */
+.enhanced-mode-card, .category-card, .question-item, 
+.settings-range-box, .difficulty-card, .settings-item {
+    background-color: rgba(var(--accent-rgb), 0.06);
+    border: 1px solid rgba(var(--accent-rgb), 0.12);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.enhanced-mode-card:hover, .category-card:hover, 
+.question-item:hover, .settings-range-box:hover, 
+.difficulty-card:hover, .settings-item:hover {
+    background-color: rgba(var(--accent-rgb), 0.10);
+    border-color: rgba(var(--accent-rgb), 0.28);
+    box-shadow: var(--shadow-glow);
+    transform: translateY(-2px);
+}
+
+/* الوضع الفاتح - تحسين الإطارات */
+[data-theme="light"] .enhanced-mode-card,
+[data-theme="light"] .category-card,
+[data-theme="light"] .settings-range-box,
+[data-theme="light"] .modal-content,
+[data-theme="light"] .q-wrapper {
+    border: 1px solid var(--border-element);
+    box-shadow: 0 2px 8px rgba(30, 58, 95, 0.06);
+}
+
+[data-theme="light"] .enhanced-mode-card:hover,
+[data-theme="light"] .category-card:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 4px 16px rgba(30, 58, 95, 0.10);
+}
+
+/* ========== العناوين والنصوص ========== */
+.main-title, .modal-title, .enhanced-title, 
+.group-header .group-title, .select-answer-title,
+.result-title, .about-content > div:first-child,
+.settings-group .group-header span:first-child {
+    color: var(--heading-color);
+    text-shadow: none;
+    font-weight: 800;
+}
+
+/* تقليل كثافة ألوان النصوص في الثيمات الداكنة */
+[data-theme]:not([data-theme="light"]) .main-title,
+[data-theme]:not([data-theme="light"]) .modal-title,
+[data-theme]:not([data-theme="light"]) .enhanced-title,
+[data-theme]:not([data-theme="light"]) .select-answer-title,
+[data-theme]:not([data-theme="light"]) .result-title {
+    color: var(--accent-light);
+    opacity: 0.92;
+}
+
+/* الوضع الفاتح - عناوين كحلية */
+[data-theme="light"] .main-title,
+[data-theme="light"] .modal-title,
+[data-theme="light"] .enhanced-title,
+[data-theme="light"] .select-answer-title,
+[data-theme="light"] .result-title {
+    color: #1e3a5f;
+}
+
+/* ========== الأزرار ========== */
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: #ffffff;
+    border: none;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.25);
+}
+
+.btn-secondary {
+    background: rgba(var(--accent-rgb), 0.06);
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+.btn-secondary:hover {
+    background: rgba(var(--accent-rgb), 0.12);
+    border-color: rgba(var(--accent-rgb), 0.35);
+    color: var(--accent);
+}
+
+/* ========== أزرار الإجابة ========== */
+.answer-btn {
+    background: linear-gradient(145deg, var(--bg-tertiary), var(--bg-secondary));
+    border: 1.5px solid rgba(var(--accent-rgb), 0.15);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+.answer-btn:hover {
+    border-color: rgba(var(--accent-rgb), 0.40);
+    box-shadow: 0 2px 12px rgba(var(--accent-rgb), 0.08);
+    transform: translateY(-1px);
+}
+.answer-btn.correct {
+    background: var(--success-bg);
+    border-color: var(--success);
+    box-shadow: 0 0 16px rgba(var(--success-rgb), 0.20);
+    color: var(--success);
+}
+.answer-btn.wrong {
+    background: var(--error-bg);
+    border-color: var(--error);
+    box-shadow: 0 0 16px rgba(var(--error-rgb), 0.20);
+    color: var(--error);
+}
+.answer-btn.show-correct {
+    background: rgba(var(--accent-rgb), 0.10);
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.15);
+    color: var(--accent);
+}
+
+/* ========== المؤقت ========== */
+.timer-circle {
+    border: 2px solid rgba(var(--accent-rgb), 0.30);
+    background: conic-gradient(var(--accent) 0deg, var(--bg-tertiary) 0deg);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.12);
+}
+#timerDisplay {
+    color: var(--accent);
+    font-weight: 800;
+}
+
+/* ========== أشرطة الحالة والإحصائيات ========== */
+.status-bar, .quick-stats, .stats-row {
+    background: rgba(var(--accent-rgb), 0.04);
+    border: 1px solid rgba(var(--accent-rgb), 0.12);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+.status-item span, .stat-value {
+    color: var(--accent);
+    font-weight: 800;
+}
+
+/* ========== صندوق السؤال ========== */
+.q-wrapper {
+    background: rgba(var(--accent-rgb), 0.03);
+    border: 1.5px solid rgba(var(--accent-rgb), 0.20);
+    box-shadow: 0 4px 20px rgba(var(--accent-rgb), 0.06);
+}
+#question-text {
+    color: var(--text-primary);
+    font-weight: 700;
+    text-shadow: none;
+}
+
+/* الوضع الفاتح - صندوق السؤال */
+[data-theme="light"] .q-wrapper {
+    background: rgba(30, 58, 95, 0.03);
+    border: 1.5px solid rgba(30, 58, 95, 0.25);
+    box-shadow: 0 4px 20px rgba(30, 58, 95, 0.06);
+}
+[data-theme="light"] #question-text {
+    color: #1e3a5f;
+}
+
+/* ========== شريط التمرير ========== */
+::-webkit-scrollbar-thumb {
+    background: rgba(var(--accent-rgb), 0.25);
+    border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--accent-rgb), 0.40);
+}
+::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+}
+
+::selection {
+    background: rgba(var(--accent-rgb), 0.25);
+    color: var(--text-primary);
+}
+
+/* ========== زر القائمة الجانبية ========== */
+.sidebar-toggle {
+    background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(var(--accent-rgb), 0.25);
+}
+.sidebar-toggle:hover {
+    transform: translateY(-50%) scale(1.05);
+    box-shadow: 0 6px 24px rgba(var(--accent-rgb), 0.35);
+}
+
+/* ========== رؤوس المجموعات ========== */
+.group-header {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+}
+.group-header:hover {
+    background: rgba(var(--accent-rgb), 0.05);
+}
+.group-header .collapse-icon {
+    color: var(--accent);
+    opacity: 0.7;
+}
+
+/* ========== عناصر النطاق ========== */
+.range-control button {
+    background: var(--accent);
+    color: #ffffff;
+    border: none;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(var(--accent-rgb), 0.25);
+}
+.range-control button:hover {
+    background: var(--accent-dark);
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb), 0.35);
+}
+.range-control span {
+    color: var(--accent);
+    font-weight: 800;
+}
+
+/* ========== بطاقات الصعوبة ========== */
+.difficulty-card.active {
+    background: rgba(var(--accent-rgb), 0.10);
+    border-color: var(--accent);
+    border-style: solid;
+    box-shadow: 0 2px 12px rgba(var(--accent-rgb), 0.12);
+}
+
+/* ========== حقول الإدخال ========== */
+input, select, textarea {
+    background: var(--bg-tertiary);
+    border: 1px solid rgba(var(--accent-rgb), 0.15);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+input:focus, select:focus, textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.08);
+    outline: none;
+}
+
+/* الوضع الفاتح - حقول الإدخال */
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+    background: #f7f2e8;
+    border: 1px solid rgba(30, 58, 95, 0.20);
+}
+[data-theme="light"] input:focus,
+[data-theme="light"] select:focus,
+[data-theme="light"] textarea:focus {
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.08);
+}
+
+/* ========== روابط التواصل الاجتماعي ========== */
+.social-links .btn {
+    background: rgba(var(--accent-rgb), 0.05);
+    border: 1px solid rgba(var(--accent-rgb), 0.15);
+}
+.social-links .btn:hover {
+    background: rgba(var(--accent-rgb), 0.12);
+    border-color: rgba(var(--accent-rgb), 0.30);
+}
+
+/* ========== التنبيهات ========== */
+.app-toast {
+    background: var(--bg-modal);
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    color: var(--text-primary);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* ========== إطارات الوضع الفاتح الكحلية المشعة ========== */
+[data-theme="light"] .modal-content {
+    border: 1px solid rgba(30, 58, 95, 0.25);
+    box-shadow: 0 8px 32px rgba(30, 58, 95, 0.08), 0 0 0 1px rgba(30, 58, 95, 0.10);
+}
+
+[data-theme="light"] .status-bar,
+[data-theme="light"] .quick-stats {
+    background: rgba(30, 58, 95, 0.04);
+    border: 1px solid rgba(30, 58, 95, 0.20);
+}
+
+[data-theme="light"] .answer-panel-header,
+[data-theme="light"] .stats-row {
+    background: rgba(30, 58, 95, 0.03);
+    border: 1px solid rgba(30, 58, 95, 0.20);
+}
+
+[data-theme="light"] .timer-circle {
+    border-color: rgba(30, 58, 95, 0.35);
+    box-shadow: 0 0 12px rgba(30, 58, 95, 0.10);
+}
+
+[data-theme="light"] .timer-circle.phase-1 {
+    border-color: #10b981;
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.15);
+}
+[data-theme="light"] .timer-circle.phase-2 {
+    border-color: #f59e0b;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);
+}
+[data-theme="light"] .timer-circle.phase-3 {
+    border-color: #ef4444;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.15);
+}
+
+/* ========== تقليل تأثيرات النص في الوضع الداكن ========== */
+[data-theme]:not([data-theme="light"]) .main-title {
+    text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.15);
+}
+[data-theme]:not([data-theme="light"]) .hero-icon {
+    filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.20));
+}
+[data-theme]:not([data-theme="light"]) .stat-value {
+    text-shadow: 0 0 6px rgba(var(--accent-rgb), 0.12);
+}
+
+/* الوضع الفاتح - أيقونة البطل */
+[data-theme="light"] .hero-icon {
+    filter: drop-shadow(0 0 6px rgba(30, 58, 95, 0.15));
+}
+
+/* ========== تحسين مظهر شاشة البداية ========== */
+#splash-screen {
+    background: radial-gradient(circle at center, rgba(var(--accent-rgb), 0.03) 0%, transparent 60%),
+                linear-gradient(180deg, var(--bg-tertiary) 0%, var(--bg) 50%, var(--bg-secondary) 100%);
+}
+
+[data-theme="light"] #splash-screen {
+    background: radial-gradient(circle at center, rgba(30, 58, 95, 0.04) 0%, transparent 60%),
+                linear-gradient(180deg, #e8dcc8 0%, #f5efe6 50%, #ebe4d8 100%);
+}

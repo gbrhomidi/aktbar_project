@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" id="html-root">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#f5efe6">
+
+    <title id="app-title" data-i18n="appTitle">المنصة التعليمية الذكية</title>
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body data-theme="light">
+
+
+
+    <!-- ======== SPLASH SCREEN ======== -->
+    <div id="splash-screen">
+        <div class="scene">
+            <div class="hexWrap"><img src="assets/icons/hexagon.png" class="hex" alt="hexagon" loading="eager"></div>
+            <div class="brainWrap"><img src="assets/icons/brain.png" class="brain" alt="brain" loading="eager"></div>
+            <div class="penWrap"><img src="assets/icons/pen.png" class="pen" alt="pen" loading="eager"></div>
+            <div class="checkWrap"><img src="assets/icons/check.png" class="check" alt="check" loading="eager"></div>
+            <div class="particle p1"></div>
+            <div class="particle p2"></div>
+            <div class="particle p3"></div>
+            <div class="textGroup">
+                <div class="titleRow">
+                    <div class="title title-first" data-i18n="splash_title_first">الـمـنـصــــــة</div>
+                    <div class="title title-second" data-i18n="splash_title_second">الـتـعـلـيـمـيــة</div>
+                </div>
+                <div class="subtitle" data-i18n="splash_subtitle">الحميدي</div>
+            </div>
+        </div>
+        <div class="skip-hint" data-i18n="skip_hint">انقر مرتين للتخطي ⏭️</div>
+    </div>
+
+    <!-- ======== HOME SCREEN ======== -->
+    <div id="home-screen">
+        <div class="status-bar">
+            <div class="status-item"><span id="bank-questions-count">0</span> <span data-i18n="status_bank">بنك الأسئلة</span></div>
+            <div class="status-item">⭐ <span id="bank-stars">0</span></div>
+            <div class="status-item">🏆 <span id="bank-trophy">0</span></div>
+        </div>
+
+        <div class="hero-section">
+            <div class="hero-icon">🎓</div>
+            <h1 class="main-title" data-i18n="app_name">المنصة التعليمية الذكية</h1>
+            <p class="main-subtitle" data-i18n="app_subtitle">ابنِ اختبارك، وتحدَّى نفسك!</p>
+        </div>
+
+        <div class="modes-grid">
+            <button class="enhanced-mode-card" id="quick-challenge-btn" aria-label="تحدي سريع">
+                <div class="mode-icon-full"><img src="assets/icons/Quick Challenge.png" alt="تحدي سريع" loading="lazy"></div>
+                <div class="enhanced-title" data-i18n="quick_challenge">تحدي سريع</div>
+                <div class="card-glow"></div>
+            </button>
+            <button class="enhanced-mode-card" id="test-mode-btn" aria-label="اختبر معلوماتك">
+                <div class="mode-icon-full"><img src="assets/icons/Test Your.png" alt="اختبر معلوماتك" loading="lazy"></div>
+                <div class="enhanced-title" data-i18n="test">اختبر معلوماتك</div>
+                <div class="card-glow"></div>
+            </button>
+        </div>
+
+        <div class="quick-stats">
+            <div class="stat-item">
+                <span class="stat-label" data-i18n="gamesPlayed">ألعاب</span>
+                <span class="stat-value" id="stat-games">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label" data-i18n="correctAnswers">صحيحة</span>
+                <span class="stat-value" id="stat-correct">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label" data-i18n="bestScore">أفضل</span>
+                <span class="stat-value" id="stat-score">0</span>
+            </div>
+          </div>
+        </div>
+
+    <!-- ======== SIDEBAR TOGGLE ======== -->
+    <div class="sidebar-toggle" id="sidebarToggle" role="button" aria-label="فتح القائمة" tabindex="0">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- ======== SIDEBAR ======== -->
+    <nav class="sidebar" id="sidebar" aria-label="القائمة الجانبية">
+        <div class="sidebar-content">
+            <!-- الأزرار القياسية (تظهر في الشاشة الرئيسية) -->
+            <button class="sidebar-btn standard-sidebar-btn" id="sidebar-home" data-tooltip="الرئيسية" aria-label="الرئيسية">
+                <i class="fas fa-house" style="color: #4ade80;"></i>
+                <span data-i18n="home">الرئيسية</span>
+            </button>
+            <button class="sidebar-btn standard-sidebar-btn" id="sidebar-manage" data-tooltip="إدارة الأسئلة" aria-label="إدارة الأسئلة">
+                <i class="fas fa-folder-open" style="color: #60a5fa;"></i>
+                <span data-i18n="manage_questions">إدارة الأسئلة</span>
+            </button>
+            <button class="sidebar-btn standard-sidebar-btn" id="sidebar-achievements" data-tooltip="الإنجازات" aria-label="الإنجازات">
+                <i class="fas fa-medal" style="color: #fbbf24;"></i>
+                <span data-i18n="achievements">الإنجازات</span>
+            </button>
+            <button class="sidebar-btn standard-sidebar-btn" id="sidebar-network" data-tooltip="الشبكة" aria-label="الشبكة">
+                <i class="fas fa-network-wired" style="color: #a78bfa;"></i>
+                <span data-i18n="network">الشبكة</span>
+            </button>
+            <button class="sidebar-btn standard-sidebar-btn" id="sidebar-settings" data-tooltip="الإعدادات" aria-label="الإعدادات">
+                <i class="fas fa-gear" style="color: #94a3b8;"></i>
+                <span data-i18n="settings">الإعدادات</span>
+            </button>
+            <button class="sidebar-btn standard-sidebar-btn" id="sidebar-about" data-tooltip="عن التطبيق" aria-label="عن التطبيق">
+                <i class="fas fa-circle-info" style="color: #f472b6;"></i>
+                <span data-i18n="about">عن التطبيق</span>
+            </button>
+
+            <!-- أزرار وضع إدارة الأسئلة (مخفية افتراضياً) -->
+            <button class="sidebar-btn manage-mode-btn hidden" id="sidebar-manage-home" data-tooltip="الرئيسية" aria-label="الرئيسية">
+                <i class="fas fa-house" style="color: #4ade80;"></i>
+                <span data-i18n="home">الرئيسية</span>
+            </button>
+            <button class="sidebar-btn manage-mode-btn hidden" id="sidebar-manage-add-category" data-tooltip="إضافة تصنيف" aria-label="إضافة تصنيف">
+                <i class="fas fa-folder-plus" style="color: #60a5fa;"></i>
+                <span data-i18n="add_category">✚ تصنيف جديد</span>
+            </button>
+            <button class="sidebar-btn manage-mode-btn hidden" id="sidebar-manage-add-question" data-tooltip="إضافة سؤال" aria-label="إضافة سؤال">
+                <i class="fas fa-plus-circle" style="color: #fbbf24;"></i>
+                <span data-i18n="add_question">✚ سؤال جديد</span>
+            </button>
+            <button class="sidebar-btn manage-mode-btn hidden" id="sidebar-manage-how-to-export" data-tooltip="كيفية التصدير" aria-label="كيفية التصدير">
+                <i class="fas fa-circle-question" style="color: #94a3b8;"></i>
+                <span data-i18n="how_to_export">كيفية التصدير</span>
+            </button>
+            <button class="sidebar-btn manage-mode-btn hidden" id="sidebar-manage-export" data-tooltip="تصدير أسئلة" aria-label="تصدير أسئلة">
+                <i class="fas fa-file-export" style="color: #34d399;"></i>
+                <span data-i18n="export_questions">تصدير أسئلة</span>
+            </button>
+            <button class="sidebar-btn manage-mode-btn hidden" id="sidebar-manage-how-to-import" data-tooltip="كيفية الاستيراد" aria-label="كيفية الاستيراد">
+                <i class="fas fa-circle-question" style="color: #a78bfa;"></i>
+                <span data-i18n="how_to_import">كيفية الاستيراد</span>
+            </button>
+            <button class="sidebar-btn manage-mode-btn hidden" id="sidebar-manage-import" data-tooltip="استيراد أسئلة" aria-label="استيراد أسئلة">
+                <i class="fas fa-file-import" style="color: #fb923c;"></i>
+                <span data-i18n="import_text">استيراد أسئلة</span>
+            </button>
+            <button class="sidebar-btn manage-mode-btn hidden" id="sidebar-manage-share-qr" data-tooltip="مشاركة QR" aria-label="مشاركة QR">
+                <i class="fas fa-qrcode" style="color: #f472b6;"></i>
+                <span data-i18n="share_qr">مشاركة QR</span>
+            </button>
+            <button class="sidebar-btn manage-mode-btn hidden" id="sidebar-manage-init-db" data-tooltip="تهيئة القاعدة" aria-label="تهيئة القاعدة">
+                <i class="fas fa-trash-can" style="color: #ef4444;"></i>
+                <span data-i18n="init_db">تهيئة القاعدة</span>
+            </button>
+
+            <div class="sidebar-divider"></div>
+            <button class="sidebar-btn sidebar-btn-close" id="sidebar-close" data-tooltip="إغلاق التطبيق" aria-label="إغلاق التطبيق">
+                <i class="fas fa-power-off"></i>
+                <span data-i18n="close_app">❌ إغلاق التطبيق</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ======== OVERLAY ======== -->
+    <div id="menu-overlay" class="overlay"></div>
+
+    <!-- ======== APP CONTAINER ======== -->
+    <div id="app-container" class="hidden">
+        <div class="game-window" id="gameWindow"></div>
+    </div>
+
+    <!-- ======== MODALS ======== -->
+
+    <!-- Category Selection -->
+    <div class="modal" id="category-selection-modal" role="dialog" aria-modal="true" aria-labelledby="cat-modal-title">
+        <div class="modal-content modern">
+            <div class="modal-header">
+                <h2 class="modal-title" id="cat-modal-title" data-i18n="select_categories">📂 اختيار التصنيفات</h2>
+                <button class="close-btn" data-close-modal="category-selection-modal" aria-label="إغلاق">×</button>
+            </div>
+            <p class="text-center mb-2" style="color: var(--text-secondary);" data-i18n="select_one_or_more">اختر تصنيفاً واحداً أو أكثر</p>
+            <div class="category-selection-grid" id="category-selection-grid"></div>
+            <div class="category-actions">
+                <button class="btn btn-primary" id="btn-start-selected" data-i18n="start">🚀 ابدأ</button>
+                <button class="btn btn-secondary" data-close-modal="category-selection-modal" data-i18n="cancel">❌ إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Range Modal -->
+    <div class="modal" id="range-modal" role="dialog" aria-modal="true" aria-labelledby="range-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="range-modal-title" data-i18n="select_range">📚 نطاق الوحدات والدروس</h2>
+                <button class="close-btn" data-close-modal="range-modal" aria-label="إغلاق">×</button>
+            </div>
+
+            <div class="settings-group">
+                <div class="group-header" data-toggle="range-units">
+                    <span data-i18n="unit_range_title">📚 نطـــاق الـــوحـــــدات</span>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="group-content open" id="range-units">
+                    <div class="double-row" style="gap: 20px;">
+                        <div class="range-box dashed-range-box">
+                            <span class="settings-label" data-i18n="from_unit">من الوحدة</span>
+                            <div class="range-control">
+                                <button data-range="fromUnit" data-delta="1" aria-label="زيادة">▲</button>
+                                <span id="range-from-unit">1</span>
+                                <button data-range="fromUnit" data-delta="-1" aria-label="تقليل">▼</button>
+                            </div>
+                        </div>
+                        <div class="range-box dashed-range-box">
+                            <span class="settings-label" data-i18n="to_unit">إلى الوحدة</span>
+                            <div class="range-control">
+                                <button data-range="toUnit" data-delta="1" aria-label="زيادة">▲</button>
+                                <span id="range-to-unit">1</span>
+                                <button data-range="toUnit" data-delta="-1" aria-label="تقليل">▼</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="group-header" data-toggle="range-lessons">
+                    <span data-i18n="lesson_range_title">📖 نطـــاق الــــــــــدروس</span>
+                    <span class="collapse-icon">▼</span>
+                </div>
+                <div class="group-content open" id="range-lessons">
+                    <div class="double-row" style="gap: 20px;">
+                        <div class="range-box dashed-range-box">
+                            <span class="settings-label" data-i18n="from_lesson">من الدرس</span>
+                            <div class="range-control">
+                                <button data-range="fromLesson" data-delta="1" aria-label="زيادة">▲</button>
+                                <span id="range-from-lesson">1</span>
+                                <button data-range="fromLesson" data-delta="-1" aria-label="تقليل">▼</button>
+                            </div>
+                        </div>
+                        <div class="range-box dashed-range-box">
+                            <span class="settings-label" data-i18n="to_lesson">إلى الدرس</span>
+                            <div class="range-control">
+                                <button data-range="toLesson" data-delta="1" aria-label="زيادة">▲</button>
+                                <span id="range-to-lesson">1</span>
+                                <button data-range="toLesson" data-delta="-1" aria-label="تقليل">▼</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="category-actions">
+                <button class="btn btn-primary" id="range-confirm" data-i18n="done">✅ تم</button>
+                <button class="btn btn-secondary" data-close-modal="range-modal" data-i18n="cancel">❌ إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Questions -->
+    <div class="modal" id="manage-modal" role="dialog" aria-modal="true" aria-labelledby="manage-modal-title">
+        <div class="modal-content manage-modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="manage-modal-title" data-i18n="manage_questions_title">📋 إدارة الأسئلة</h2>
+                <button class="close-btn" data-close-modal="manage-modal" aria-label="إغلاق">×</button>
+            </div>
+
+            <div class="category-filter">
+                <label for="category-filter-select" data-i18n="categories_label">📂 التصنيفات:</label>
+                <select id="category-filter-select" class="form-control" style="flex: 1;">
+                    <option value="all" data-i18n="all_categories">الكل</option>
+                </select>
+            </div>
+
+            <div id="add-category-container" class="hidden mb-2">
+                <div class="double-row">
+                    <input type="text" id="new-category-input" class="form-control" data-i18n-placeholder="enter_category_name" placeholder="اسم التصنيف الجديد...">
+                    <button class="btn btn-small btn-primary" id="confirm-add-category" data-i18n="add">إضافة</button>
+                </div>
+            </div>
+
+            <div class="settings-range-box">
+                <span id="questions-count-text">المجموع: 0 - المعروض: 0</span>
+            </div>
+
+            <div class="questions-list" id="questions-list"></div>
+        </div>
+    </div>
+
+    <!-- Question Form -->
+    <div class="modal" id="question-form-modal" role="dialog" aria-modal="true" aria-labelledby="question-form-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="question-form-title" data-i18n="new_question">📝 سؤال جديد</h2>
+                <button class="close-btn" data-close-modal="question-form-modal" aria-label="إغلاق">×</button>
+            </div>
+
+            <div id="question-form-container">
+                <div class="form-group">
+                    <label for="q-text" data-i18n="question_text_label">📄 نص السؤال</label>
+                    <textarea id="q-text" class="form-control" rows="2" data-i18n-placeholder="enter_question_text" placeholder="أدخل نص السؤال هنا..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-correct" data-i18n="correct_answer_label">✅ الإجابة الصحيحة</label>
+                    <input type="text" id="q-correct" class="form-control" data-i18n-placeholder="enter_correct_answer" placeholder="أدخل الإجابة الصحيحة">
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="wrong_answer1_label">❌ إجابات خاطئة</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <input type="text" class="wrong-answer form-control" data-i18n-placeholder="enter_wrong_answer" placeholder="إجابة خاطئة 1">
+                        <input type="text" class="wrong-answer form-control" data-i18n-placeholder="enter_wrong_answer" placeholder="إجابة خاطئة 2">
+                        <input type="text" class="wrong-answer form-control" data-i18n-placeholder="enter_wrong_answer" placeholder="إجابة خاطئة 3">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-category" data-i18n="category_label">🏷️ التصنيف</label>
+                    <div class="double-row">
+                        <select id="q-category" class="form-control">
+                            <option value="" data-i18n="select_category">اختر التصنيف...</option>
+                        </select>
+                        <button class="btn btn-small btn-secondary" id="q-add-category-btn">➕</button>
+                    </div>
+                </div>
+
+                <div class="double-row">
+                    <div class="form-group">
+                        <label for="q-unit" data-i18n="unit_label">📚 الوحدة</label>
+                        <input type="number" id="q-unit" class="form-control" min="1" max="20" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="q-lesson" data-i18n="lesson_label">📖 الدرس</label>
+                        <input type="number" id="q-lesson" class="form-control" min="1" max="50" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="q-difficulty" data-i18n="difficulty_label">🎯 الصعوبة</label>
+                        <select id="q-difficulty" class="form-control">
+                            <option value="A" data-i18n="difficulty_easy">سهل</option>
+                            <option value="B" selected data-i18n="difficulty_medium">متوسط</option>
+                            <option value="C" data-i18n="difficulty_hard">صعب</option>
+                            <option value="D" data-i18n="difficulty_expert">خبير</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="q-image" data-i18n="image_label">🖼️ إرفاق صورة (اختياري)</label>
+                    <input type="file" id="q-image" class="form-control" accept="image/*">
+                    <div id="image-preview" class="mt-1 text-center"></div>
+                </div>
+
+                <div class="category-actions">
+                    <button class="btn btn-primary" id="save-question-btn" data-i18n="save_question">💾 حفظ السؤال</button>
+                    <button class="btn btn-secondary" data-close-modal="question-form-modal" data-i18n="cancel">❌ إلغاء</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="modal" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="settings-modal-title" data-i18n="settings_title">⚙️ الإعدادات</h2>
+                <button class="close-btn" data-close-modal="settings-modal" aria-label="إغلاق">×</button>
+            </div>
+
+            <div class="settings-section">
+                <!-- Difficulty -->
+                <div class="settings-group">
+                    <div class="group-header" data-toggle="difficulty-group">
+                        <span class="group-title" data-i18n="difficulty_level">🎯 مستوى الصعوبة</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="group-content" id="difficulty-group">
+                        <div class="difficulty-grid">
+                            <button data-difficulty="A" class="difficulty-card" aria-label="سهل">
+                                <div class="difficulty-icon">🚀</div>
+                                <div class="difficulty-title" data-i18n="easy">سهل</div>
+                            </button>
+                            <button data-difficulty="B" class="difficulty-card active" aria-label="متوسط">
+                                <div class="difficulty-icon">🌟</div>
+                                <div class="difficulty-title" data-i18n="medium">متوسط</div>
+                            </button>
+                            <button data-difficulty="C" class="difficulty-card" aria-label="صعب">
+                                <div class="difficulty-icon">👑</div>
+                                <div class="difficulty-title" data-i18n="hard">صعب</div>
+                            </button>
+                            <button data-difficulty="D" class="difficulty-card" aria-label="تحليلي">
+                                <div class="difficulty-icon">🧠</div>
+                                <div class="difficulty-title" data-i18n="analytical">تحليلي</div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timers -->
+                <div class="settings-group">
+                    <div class="group-header" data-toggle="timers-group">
+                        <span class="group-title" data-i18n="timers_and_limits">🔃 المؤقتات والتحديدات</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="group-content" id="timers-group">
+                        <div class="settings-range-box">
+                            <span class="settings-label" data-i18n="time_per_question">⏱️ الوقت لكل سؤال (ثانية)</span>
+                            <div class="settings-range-control">
+                                <button class="value-btn" data-setting="timePerQuestion" data-delta="1" aria-label="زيادة">▲</button>
+                                <span class="settings-range-value" id="time-per-question-display">15</span>
+                                <button class="value-btn" data-setting="timePerQuestion" data-delta="-1" aria-label="تقليل">▼</button>
+                            </div>
+                        </div>
+                        <div class="settings-range-box">
+                            <span class="settings-label" data-i18n="question_count">📝 عدد الأسئلة (0 = الكل)</span>
+                            <div class="settings-range-control">
+                                <button class="value-btn" data-setting="questionCount" data-delta="1" aria-label="زيادة">▲</button>
+                                <span class="settings-range-value" id="question-count-display">10</span>
+                                <button class="value-btn" data-setting="questionCount" data-delta="-1" aria-label="تقليل">▼</button>
+                            </div>
+                        </div>
+                        <div class="settings-range-box">
+                            <span class="settings-label" data-i18n="test_duration">🕐 مدة الاختبار (دقيقة)</span>
+                            <div class="settings-range-control">
+                                <button class="value-btn" data-setting="testDuration" data-delta="1" aria-label="زيادة">▲</button>
+                                <span class="settings-range-value" id="test-duration-display">30</span>
+                                <button class="value-btn" data-setting="testDuration" data-delta="-1" aria-label="تقليل">▼</button>
+                            </div>
+                        </div>
+                        <div class="settings-range-box">
+                            <span class="settings-label" data-i18n="max_wrong">🚫 حد الأخطاء (0 = بلا حد)</span>
+                            <select id="max-wrong-select" class="form-control" style="width: auto; min-width: 120px;">
+                                <option value="0" data-i18n="no_limit">بدون حد</option>
+                                <option value="1" data-i18n="error_1">1 خطأ</option>
+                                <option value="2" data-i18n="error_2">2 أخطاء</option>
+                                <option value="3" data-i18n="error_3">3 أخطاء</option>
+                                <option value="4" data-i18n="error_4">4 أخطاء</option>
+                                <option value="5" data-i18n="error_5">5 أخطاء</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Themes & Sound -->
+                <div class="settings-group">
+                    <div class="group-header" data-toggle="themes-group">
+                        <span class="group-title" data-i18n="themes_and_sounds">🎨 الثيمات والأصوات واللغة</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="group-content" id="themes-group">
+                        <div class="double-row">
+                            <div class="settings-item">
+                                <span class="settings-label" data-i18n="mute_sound">🔇 كتم الصوت</span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="mute-sound-checkbox">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="settings-item">
+                                <span class="settings-label" data-i18n="dark_mode">🌙 الوضع الداكن</span>
+                                <label class="toggle">
+                                    <input type="checkbox" id="dark-mode-checkbox">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="double-row">
+                            <div class="settings-item" style="flex: 1;">
+                                <span class="settings-label" data-i18n="language">🌐 لغة التطبيق</span>
+                                <select id="language-select" class="form-control">
+                                    <option value="ar">العربية</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+                            <div id="theme-select-container" class="settings-item" style="flex: 1;">
+                                <span class="settings-label" data-i18n="theme">🎨 السمة اللونية</span>
+                                <select id="theme-select" class="form-control">
+                                    <option value="blue-gold" data-i18n="theme_blue_gold">🔵 الأزرق الذهبي</option>
+                                    <option value="emerald-gold" data-i18n="theme_emerald_gold">🟢 الزمردي الذهبي</option>
+                                    <option value="ruby-gold" data-i18n="theme_ruby_gold">🔴 الياقوت الذهبي</option>
+                                    <option value="amethyst-gold" data-i18n="theme_amethyst_gold">🟣 الجمشتي الذهبي</option>
+                                    <option value="charcoal-gold" data-i18n="theme_charcoal_gold">⚫ الفحمي الذهبي</option>
+                                    <option value="ocean-gold" data-i18n="theme_ocean_gold">🌊 المحيط الذهبي</option>
+                                    <option value="sunset-gold" data-i18n="theme_sunset_gold">🌅 الغروب الذهبي</option>
+                                    <option value="forest-gold" data-i18n="theme_forest_gold">🌲 الغابة الذهبية</option>
+                                    <option value="midnight-gold" data-i18n="theme_midnight_gold">🌙 منتصف الليل الذهبي</option>
+                                    <option value="rose-gold" data-i18n="theme_rose_gold">🌹 الوردي الذهبي</option>
+                                    <option value="neon-gold" data-i18n="theme_neon_gold">💡 النيون الذهبي</option>
+                                    <option value="cosmic-gold" data-i18n="theme_cosmic_gold">🌌 الكوني الذهبي</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Network -->
+                <div class="settings-group">
+                    <div class="group-header" data-toggle="network-group">
+                        <span class="group-title" data-i18n="network_connection">🌐 الاتصال الشبكي</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="group-content" id="network-group">
+                        <div class="form-group">
+                            <label for="device-name-input" data-i18n="device_name">اسم الجهاز</label>
+                            <input type="text" id="device-name-input" class="form-control" placeholder="Device Name">
+                        </div>
+                        <div class="network-modes">
+                            <button class="network-mode-btn btn btn-small btn-secondary" data-network="teacher" id="teacher-mode-btn" data-i18n="teacher_mode">👨‍🏫 وضع الأستاذ</button>
+                            <button class="network-mode-btn btn btn-small btn-secondary" data-network="student" id="student-mode-btn" data-i18n="student_mode">👨‍🎓 وضع الطالب</button>
+                            <button class="network-mode-btn btn btn-small btn-secondary" id="share-qr-settings" data-network="share" data-i18n="share_qr">📱 مشاركة QR</button>
+                        </div>
+                        <div id="network-dashboard" class="mt-1"></div>
+                        <div id="qr-container" class="text-center mt-1"></div>
+                    </div>
+                </div>
+
+                <!-- Data Management -->
+                <div class="settings-group">
+                    <div class="group-header" data-toggle="data-group">
+                        <span class="group-title" data-i18n="data_management">💾 إدارة البيانات</span>
+                        <span class="collapse-icon">▼</span>
+                    </div>
+                    <div class="group-content" id="data-group">
+                        <button class="btn btn-secondary w-full mb-1" id="export-backup-btn" data-i18n="exportBackup">📤 تصدير نسخة احتياطية</button>
+                        <input type="file" id="restore-file" accept=".json" hidden>
+                        <button class="btn btn-secondary w-full mb-1" id="import-backup-btn" data-i18n="importBackup">📥 استيراد نسخة احتياطية</button>
+                        <button class="btn btn-danger w-full" id="reset-db-btn" data-i18n="resetDatabase">⚠️ حذف قاعدة البيانات</button>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary w-full mt-2" id="close-settings-btn" data-i18n="done">✅ تم</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Achievements -->
+    <div class="modal" id="achievements-modal" role="dialog" aria-modal="true" aria-labelledby="achievements-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="achievements-modal-title" data-i18n="achievements_title">🏆 الإنجازات</h2>
+                <button class="close-btn" data-close-modal="achievements-modal" aria-label="إغلاق">✕</button>
+            </div>
+            <div class="modal-body" id="achievements-content" style="max-height: 60vh; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="modal" id="results-modal" role="dialog" aria-modal="true" aria-labelledby="results-modal-title">
+        <div class="modal-content glass-round">
+            <div class="results-content">
+                <div class="result-emoji" id="result-emoji">🏆</div>
+                <div class="result-title" id="result-message" data-i18n="excellent">ممتاز! 🥰</div>
+                <div class="report-stats">
+                    <div class="report-row"><span data-i18n="score_label">📊 النقاط:</span><span class="report-value" id="final-score">0</span></div>
+                    <div class="report-row"><span data-i18n="stars_label">⭐ النجوم:</span><span class="report-value" id="final-stars">0</span></div>
+                    <div class="report-row"><span data-i18n="questions_label">📝 الأسئلة:</span><span class="report-value" id="final-questions">0/0</span></div>
+                    <div class="report-row"><span data-i18n="wrong_label">❌ الأخطاء:</span><span class="report-value" id="final-wrong-clicks">0</span></div>
+                    <div class="report-row"><span data-i18n="correct_label">✅ الصحيح:</span><span class="report-value" id="final-correct">0</span></div>
+                </div>
+                <div class="results-buttons">
+                    <button class="btn btn-primary" id="replay-btn" data-i18n="play_again">🔄 مرة أخرى</button>
+                    <button class="btn btn-secondary" id="home-from-results-modal-btn" data-i18n="back_home">🏠 رجوع</button>
+                    <button class="btn btn-secondary hidden" id="review-answers-btn-modal" data-i18n="review_answers">مراجعة الإجابات</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- About -->
+    <div class="modal" id="about-modal" role="dialog" aria-modal="true" aria-labelledby="about-modal-title">
+        <div class="modal-content modern">
+            <div class="modal-header">
+                <h2 class="modal-title" id="about-modal-title" data-i18n="about_us_title">✨ من نحن ✨</h2>
+                <button class="close-btn" data-close-modal="about-modal" aria-label="إغلاق">✕</button>
+            </div>
+            <div class="about-content">
+                <div data-i18n="app_name">المنصة التعليمية الذكية</div>
+                <div data-i18n="version">الإصدار 3.0</div>
+                <div data-i18n="developer_name">المهندس / جبر الحميدي</div>
+                <div data-i18n="contact_direct">للتواصل المباشر</div>
+                <div class="social-links">
+                    <!-- واتساب - رابط مباشر للتطبيق -->
+                    <a href="whatsapp://send?phone=00967781038203" class="btn btn-small btn-secondary" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: #25D366;">
+                            <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21z"/>
+                            <path d="M9 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1z"/>
+                            <path d="M14 10a.5.5 0 0 0 1 0V9a.5.5 0 0 0-1 0v1z"/>
+                            <path d="M12 16a3 3 0 0 0 2.5-1.5"/>
+                        </svg>
+                        <span data-i18n="whatsapp">واتساب</span>
+                    </a>
+                    <!-- فيسبوك - رابط مباشر للتطبيق -->
+                    <a href="fb://profile/jbr.mhdy.alhmydy" class="btn btn-small btn-secondary" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: #1877F2;">
+                            <path d="M18 2h-3a4 4 0 0 0-4 4v3H8v4h3v8h4v-8h3l1-4h-4V6a1 1 0 0 1 1-1h3z"/>
+                        </svg>
+                        <span data-i18n="facebook">فيسبوك</span>
+                    </a>
+                    <!-- Gmail - يفتح تطبيق البريد الافتراضي -->
+                    <a href="mailto:db7r01@gmail.com" class="btn btn-small btn-secondary" style="display: inline-flex; align-items: center; gap: 6px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color: #EA4335;">
+                            <path d="M22 6L12 13 2 6v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6z"/>
+                            <path d="M22 6L12 13 2 6"/>
+                        </svg>
+                        <span data-i18n="gmail">Gmail</span>
+                    </a>
+                </div>
+                <div style="font-style: italic; color: var(--text-secondary); font-size: 0.9rem;" data-i18n="charity">
+                    صدقة جارية لروح أبي وأمي - اللهم اجعلهم في الفردوس الأعلى
+                </div>
+                <button class="btn btn-primary w-full mt-2" data-close-modal="about-modal" data-i18n="close">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Share -->
+    <div class="modal" id="qr-modal" role="dialog" aria-modal="true" aria-labelledby="qr-modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="qr-modal-title" data-i18n="share_qr_title">📱 مشاركة QR</h2>
+                <button class="close-btn" data-close-modal="qr-modal" aria-label="إغلاق">×</button>
+            </div>
+            <div class="qr-modal-content">
+                <p style="color: var(--text-secondary); margin-bottom: 15px;" data-i18n="qr_instructions">امسح الكود لمشاركة بنك الأسئلة</p>
+                <div id="qrcode-container"></div>
+                <div id="qr-data-preview"></div>
+                <div class="category-actions">
+                    <button class="btn btn-primary" id="download-qr-btn" data-i18n="download_qr">💾 تحميل QR</button>
+                    <button class="btn btn-secondary" data-close-modal="qr-modal" data-i18n="close">إغلاق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Guide Modal -->
+    <div id="export-guide-modal" class="modal">
+        <div class="modal-content modern" style="max-width:400px;padding:20px;">
+            <div class="modal-header">
+                <h2 class="modal-title" style="color:var(--gold);" data-i18n="how_to_export">📘 كيفية تصدير الأسئلة</h2>
+                <button class="close-btn" data-close-modal="export-guide-modal">×</button>
+            </div>
+            <p style="line-height:1.6; color:var(--text-primary);" data-i18n="export_guide_intro">لتصدير أسئلة تصنيف محدد:</p>
+            <ol style="padding-right:20px; margin-bottom:15px; color:var(--text-secondary);">
+                <li data-i18n="export_guide_step1">اختر التصنيف من القائمة المنسدلة أعلاه.</li>
+                <li data-i18n="export_guide_step2">اضغط على زر "تصدير أسئلة" لتنزيل ملف JSON يحتوي على أسئلة هذا التصنيف فقط.</li>
+                <li data-i18n="export_guide_step3">يمكنك أيضاً نسخ المحتوى يدوياً من خلال معاينة الأسئلة.</li>
+            </ol>
+            <button class="btn btn-primary" style="width:100%;" data-close-modal="export-guide-modal" data-i18n="done">✅ تم</button>
+        </div>
+    </div>
+
+    <!-- How To Import -->
+    <div class="modal" id="how-to-import-modal" role="dialog" aria-modal="true" aria-labelledby="how-to-import-title">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="how-to-import-title" data-i18n="how_to_import_title">📘 كيفية استيراد الأسئلة من كتاب PDF</h2>
+                <button class="close-btn" data-close-modal="how-to-import-modal" aria-label="إغلاق">×</button>
+            </div>
+            <div style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
+                <p style="line-height: 1.6; margin-bottom: 15px; color: var(--text-secondary);" data-i18n="import_instructions">
+                    قم برفع و مشاركة كتاب المادة الدراسية بصيغة "pdf" في احد نماذج الذكاء الاصطناعي و يفضل [ chatgpt & Claude Opus ] .
+ ومن ثم قم بمشاركة البرومبت التالي مع أحد نماذج الذكاء الاصطناعي. و عند اكتمال إنشاء ملف الاسئلة، قم بنسخة، و من ثم قم بحفظة على جهازك كالتالي [ أسئلة العلوم.txt ] او [ أسئلة الجغرافيا.json ] ، و من ثم قم باستيراد ملف الاسئلة من التطبيق. 
+                </p>
+                <div class="prompt-box">
+                    <pre id="prompt-text">أنت خبير أكاديمي محترف، متخصص في تحليل الكتب والمناهج الدراسية، وإنشاء بنوك أسئلة ذكية ومتنوعة. المهمة المطلوبة: قم بالاطلاع على الملف المرفق الذي يحتوي على الكتاب المدرسي أو المادة التعليمية بالكامل.
+
+---
+
+### المتطلبات الأساسية (يجب الالتزام بها بدقة):
+
+1. **التحليل الشامل والدقيق للملف:**
+   - اقرأ الملف بالكامل صفحة صفحة، ولا تغادر أي جزء.
+   - حلل العناوين الرئيسية، العناوين الفرعية، التعاريف، الشروحات، الأمثلة، اختبارات الوحدات، الجداول، الرسومات التوضيحية (إن وجدت)، الملاحظات المهمة، والتمارين الأصلية في نهاية كل وحدة.
+   - استخرج الأفكار الرئيسية والثانوية، والمفاهيم الأساسية، والمصطلحات، والنظريات، والتطبيقات العملية.
+
+2. **استخلاص أكبر عدد ممكن من الأسئلة:**
+   - لا تضع حدًا أقصى لعدد الأسئلة. إذا كان محتوى الملف يسمح بـ 100 أو 500 أو 1000 سؤال أو أكثر، فأنشئ العدد الأقصى الممكن.
+   - غطِّ جميع أجزاء الكتاب دون استثناء (كل فصل، كل وحدة، كل درس، كل فقرة مهمة).
+   - تجنب تكرار الأسئلة أو إعادة صياغة نفس الفكرة بأكثر من سؤال واحد.
+
+3. **تنوع مستويات الصعوبة (4 مستويات):**
+   - `[A]` أسئلة بسيطة: تعتمد على الحفظ المباشر والتذكر (مثل التعاريف والمصطلحات الأساسية).
+   - `[B]` أسئلة متوسطة: تحتاج إلى فهم وربط الأفكار، واستنتاج بسيط.
+   - `[C]` أسئلة صعبة: تتطلب تحليلًا، مقارنة، تمييز فروق، أو تطبيق في سياق جديد.
+   - `[D]` أسئلة ذكاء وتحليل واستنتاج: تعتمد على استنتاج غير مباشر، حل مشكلات، تقييم، أو تركيب أفكار متقدمة.
+
+4. **شروط الإجابات:**
+   - لكل سؤال: **إجابة صحيحة واحدة** + **ثلاث إجابات خاطئة**.
+   - الإجابات الخاطئة يجب أن تكون **منطقية، واقعية، وقريبة من الإجابة الصحيحة** (لا تكون سخيفة أو واضحة الخطأ).
+   - **مطلب مهم جدًا:** يجب أن يكون عدد الحروف (أو الطول التقريبي) للإجابات الخاطئة **مشابهًا ومقاربًا** لعدد حروف الإجابة الصحيحة. مثلاً إذا كانت الإجابة الصحيحة مكونة من 8 كلمات، فلتكن الإجابات الخاطئة بين 7-9 كلمات، وإذا كانت قصيرة (كلمة أو كلمتين) فلتكن الإجابات بنفس الطول تقريبًا.
+   - جميع الأسئلة من نوع **اختيار من متعدد (Multiple Choice)**.
+
+5. **تنسيق المخرجات (احترافي وجاهز للاستخدام):**
+   - أخرج النتيجة في ملف نصي بالصيغة التالية حرفيًا (مع مراعاة المسافات والترقيم):
+
+1- [نص السؤال]
+إجابات خاطئة [ إجابة1 ] ، [ إجابة2 ] ، [ إجابة3 ]
+الإجابة الصحيحة [ الإجابة الصحيحة ] ،
+وحدة السؤال [ رقم الوحدة ] ،
+درس السؤال [ رقم الدرس ] ،
+درجة الصعوبة [ A أو B أو C أو D ]
+
+   - كرر هذا التنسيق لكل سؤال مع ترك سطر فارغ بين كل سؤال وآخر.
+
+6. **مراجعة الجودة:**
+   - قبل الانتهاء، تأكد من أن جميع الأسئلة مستخرجة فقط من الملف المرفق (بدون معلومات خارجية).
+   - تأكد من عدم وجود أي خطأ إملائي أو نحوي في الأسئلة والإجابات.
+   - تحقق من أن عدد الأسئلة مناسب لزخم المادة (كلما كان المحتوى أغنى، زاد عدد الأسئلة).
+
+7. **تعليمات إضافية:**
+   - إذا احتوى الكتاب على أرقام وحدات ودروس واضحة، استخدمها. وإذا لم تكن واضحة، قم بترقيم الوحدات والدروس افتراضيًا (وحدة 1، درس 1، إلخ) بناءً على ترتيب المحتوى.
+   - إذا وجدت تمارين أو أسئلة أصلية داخل الكتاب، يمكنك تطويرها أو صياغتها بشكل جديد مع الحفاظ على جوهرها.
+
+---
+
+**ابدأ الآن بتحليل الملف المرفق بدقة، ثم قم بإنشاء بنك الأسئلة الشامل وفق المواصفات أعلاه.</pre>
+                </div>
+                <button class="btn btn-primary w-full mt-2" id="copy-prompt-btn" style="position: sticky; bottom: 10px; margin-top: 20px;" data-i18n="copy_prompt">📋 نسخ البرومبت</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======== AUDIO ======== -->
+    <audio id="startup-splash" preload="auto" playsinline>
+        <source src="assets/sounds/startup.mp3" type="audio/mpeg">
+    </audio>
+
+    <!-- ======== SCRIPTS ======== -->
+    <script src="libs/dexie.min.js"></script>
+    <script src="libs/confetti.browser.min.js"></script>
+    <script src="libs/qrcode.min.js"></script>
+    <script src="js/constants.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/theme-manager.js"></script>
+    <script src="js/translations.js"></script>
+    <script src="js/error-handler.js"></script>
+    <script src="js/question-validator.js"></script>
+    <script src="js/adaptive-ai.js"></script>
+    <script src="js/achievements.js"></script>
+    <script src="js/splash.js"></script>
+    <script src="js/network.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/game.js"></script>
+    <script src="js/app-version.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- ======== APP INITIALIZATION ======== -->
+    <script>
+    (function() {
+        'use strict';
+
+        // ======== SIDEBAR MANAGEMENT - GLOBAL FUNCTIONS ========
+        const sidebar = document.getElementById('sidebar');
+        const toggleBtn = document.getElementById('sidebarToggle');
+        const overlay = document.getElementById('menu-overlay');
+
+        window.openSidebar = function() {
+            if (!sidebar) return;
+            sidebar.classList.add('open');
+            if (overlay) overlay.classList.add('visible');
+            if (toggleBtn) toggleBtn.classList.add('hidden');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeSidebar = function() {
+            if (!sidebar) return;
+            sidebar.classList.remove('open');
+            if (overlay) overlay.classList.remove('visible');
+            if (toggleBtn) toggleBtn.classList.remove('hidden');
+            document.body.style.overflow = '';
+        };
+
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (sidebar && sidebar.classList.contains('open')) {
+                    window.closeSidebar();
+                } else {
+                    window.openSidebar();
+                }
+            });
+        }
+
+        if (overlay) {
+            overlay.addEventListener('click', window.closeSidebar);
+        }
+
+        document.addEventListener('click', function(e) {
+            if (sidebar && sidebar.classList.contains('open')) {
+                if (!sidebar.contains(e.target) && toggleBtn && !toggleBtn.contains(e.target)) {
+                    window.closeSidebar();
+                }
+            }
+        });
+
+        // ======== HOME BUTTONS ========
+        document.getElementById('quick-challenge-btn')?.addEventListener('click', () => {
+            if (window.UI && UI.startQuickChallenge) UI.startQuickChallenge();
+        });
+        document.getElementById('test-mode-btn')?.addEventListener('click', () => {
+            if (window.UI && UI.startTestMode) UI.startTestMode();
+        });
+
+        // ======== MODAL CLOSE HANDLING مع إطلاق حدث مخصص ========
+        function handleModalClose(modalId) {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+            modal.classList.remove('active');
+
+            // إطلاق حدث مخصص لإعلام ui.js بأن المودال أُغلق
+            const event = new CustomEvent('modal-closed', { detail: { modalId } });
+            modal.dispatchEvent(event);
+
+            // FIX: إذا كان المودال المغلق هو فرعي من إدارة الأسئلة، أعد فتح إدارة الأسئلة مع قائمتها
+            const childModals = ['question-form-modal', 'how-to-import-modal', 'qr-modal', 'export-guide-modal'];
+            if (childModals.includes(modalId)) {
+                if (manageModal && !manageModal.classList.contains('active')) {
+                    manageModal.classList.add('active');
+                    if (window.UI && UI.updateSidebarForContext) {
+                        UI.updateSidebarForContext('manage');
+                    }
+                }
+            } else if (modalId === 'manage-modal') {
+                // FIX: عند إغلاق مودال الإدارة، انتقل للشاشة الرئيسية مع القائمة المناسبة
+                if (window.UI && UI.goHome) {
+                    UI.goHome();
+                } else {
+                    document.getElementById('home-screen')?.classList.remove('hidden');
+                    document.getElementById('app-container')?.classList.add('hidden');
+                    if (window.UI && UI.updateSidebarForContext) {
+                        UI.updateSidebarForContext('home');
+                    }
+                }
+            } else if (['settings-modal', 'achievements-modal', 'about-modal', 'category-selection-modal', 'range-modal'].includes(modalId)) {
+                // FIX: عند إغلاق أي مودال آخر، انتقل للشاشة الرئيسية مع القائمة المناسبة
+                if (window.UI && UI.goHome) {
+                    UI.goHome();
+                } else {
+                    document.getElementById('home-screen')?.classList.remove('hidden');
+                    document.getElementById('app-container')?.classList.add('hidden');
+                    if (window.UI && UI.updateSidebarForContext) {
+                        UI.updateSidebarForContext('home');
+                    }
+                }
+            }
+        }
+
+        document.querySelectorAll('[data-close-modal]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const modalId = this.getAttribute('data-close-modal');
+                handleModalClose(modalId);
+            });
+        });
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    handleModalClose(modal.id);
+                }
+            });
+        });
+
+        // ======== COLLAPSIBLE GROUPS ========
+        document.querySelectorAll('.group-header[data-toggle]').forEach(header => {
+            header.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-toggle');
+                const content = document.getElementById(targetId);
+                if (content) {
+                    content.classList.toggle('open');
+                    this.classList.toggle('open');
+                }
+            });
+        });
+
+        // ======== RANGE CONTROLS ========
+        document.querySelectorAll('[data-range]').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const range = this.getAttribute('data-range');
+                const delta = parseInt(this.getAttribute('data-delta'));
+                const spanId = 'range-' + range.replace(/([A-Z])/g, '-$1').toLowerCase();
+                const span = document.getElementById(spanId);
+                if (span) {
+                    let val = parseInt(span.innerText) + delta;
+                    if (range.indexOf('Unit') !== -1) val = Math.max(1, Math.min(20, val));
+                    else if (range.indexOf('Lesson') !== -1) val = Math.max(1, Math.min(50, val));
+                    span.innerText = val;
+                }
+            });
+        });
+
+        document.getElementById('range-confirm')?.addEventListener('click', () => {
+            document.getElementById('range-modal')?.classList.remove('active');
+        });
+
+        // ======== SETTINGS VALUE BUTTONS ========
+        document.querySelectorAll('.value-btn[data-setting]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const setting = this.getAttribute('data-setting');
+                const delta = parseInt(this.getAttribute('data-delta'));
+                const map = {
+                    'timePerQuestion': 'time-per-question-display',
+                    'questionCount': 'question-count-display',
+                    'testDuration': 'test-duration-display'
+                };
+                const display = document.getElementById(map[setting]);
+                if (display) {
+                    let val = parseInt(display.innerText) + delta;
+                    val = Math.max(1, val);
+                    display.innerText = val;
+                }
+            });
+        });
+
+        // ======== DIFFICULTY SELECTION ========
+        document.querySelectorAll('.difficulty-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.difficulty-card').forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // ======== STATS UPDATE ========
+        function updateStats() {
+            if (window.PlayerStatsManager && PlayerStatsManager.getStats) {
+                PlayerStatsManager.getStats().then(stats => {
+                    const games = (stats.totalChallenges || 0) + (stats.totalTests || 0);
+                    const sg = document.getElementById('stat-games');
+                    const sc = document.getElementById('stat-correct');
+                    const ss = document.getElementById('stat-score');
+                    if (sg) sg.innerText = games;
+                    if (sc) sc.innerText = Math.floor(stats.totalCorrect || 0);
+                    if (ss) ss.innerText = Math.floor(stats.totalScore || 0);
+                }).catch(() => {});
+            }
+            if (window.DB && DB.questions && DB.questions.count) {
+                DB.questions.count().then(count => {
+                    const bc = document.getElementById('bank-questions-count');
+                    if (bc) bc.innerText = Math.floor(count);
+                }).catch(() => {});
+            }
+        }
+        function initStatsLoop() {
+            if (window.DB && window.DB.questions && typeof window.DB.questions.count === 'function') {
+                updateStats();
+                setInterval(updateStats, 5000);
+            } else {
+                setTimeout(initStatsLoop, 200);
+            }
+        }
+        initStatsLoop();
+
+        // ======== SPLASH SCREEN ========
+        const SPLASH_DURATION = 8000;
+        let splashFinished = false;
+        let audioPlayed = false;
+        const startupAudio = document.getElementById('startup-splash');
+        const splashScreen = document.getElementById('splash-screen');
+
+        function showMainApp() {
+            if (splashFinished) return;
+            splashFinished = true;
+            const hint = document.querySelector('.skip-hint');
+            if (hint) {
+                hint.style.opacity = '0';
+                setTimeout(() => hint.style.display = 'none', 300);
+            }
+            if (splashScreen) {
+                splashScreen.classList.add('hidden');
+                setTimeout(() => splashScreen.style.display = 'none', 800);
+            }
+            if (typeof App !== 'undefined' && App.init && !window.__app_booted__) {
+                window.__app_booted__ = true;
+                App.init();
+            }
+        }
+
+        function startAudio() {
+            if (audioPlayed || !startupAudio) return;
+            audioPlayed = true;
+            startupAudio.volume = 0.85;
+            startupAudio.muted = false;
+            startupAudio.play().catch(() => { audioPlayed = false; });
+        }
+
+        setTimeout(startAudio, 500);
+        setTimeout(showMainApp, SPLASH_DURATION);
+
+        let lastTap = 0;
+        if (splashScreen) {
+            splashScreen.addEventListener('touchend', e => {
+                const now = Date.now();
+                if (now - lastTap < 300 && now - lastTap > 0) {
+                    e.preventDefault();
+                    showMainApp();
+                }
+                lastTap = now;
+            }, { passive: false });
+            splashScreen.addEventListener('dblclick', e => {
+                e.preventDefault();
+                showMainApp();
+            });
+        }
+
+        function onFirstInteraction() {
+            startAudio();
+            ['touchstart', 'touchend', 'click', 'keydown'].forEach(ev => document.removeEventListener(ev, onFirstInteraction));
+        }
+        ['touchstart', 'touchend', 'click', 'keydown'].forEach(ev => {
+            document.addEventListener(ev, onFirstInteraction, { once: true, passive: true });
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && !audioPlayed) startAudio();
+        });
+
+        window.history.pushState(null, '', window.location.href);
+        window.onpopstate = () => window.history.pushState(null, '', window.location.href);
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+            }
+        });
+
+        console.log('✅ index.html fully initialized');
+    })();
+    </script>
+</body>
+</html>
