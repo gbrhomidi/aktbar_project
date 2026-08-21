@@ -202,6 +202,7 @@ if (window.__APP_INITIALIZED__) {
         onAppReady() {
             console.log('✅ التطبيق جاهز للاستخدام');
             this.showFirstTimeTips();
+            this.maybeShowFirstRunImportPrompt();
             this.updatePlayerInfo();
             this.updateQuestionCount();
             if (typeof AudioManager !== 'undefined' && !AudioManager.isMuted) {
@@ -238,6 +239,50 @@ if (window.__APP_INITIALIZED__) {
                     }
                 }
             } catch (e) {}
+        },
+
+        async maybeShowFirstRunImportPrompt() {
+            const promptKey = 'smart_platform_empty_questions_prompt_seen';
+            try {
+                const questionCount = (typeof DB !== 'undefined' && DB.questions) ? await DB.questions.count() : 0;
+                if (questionCount > 0 || localStorage.getItem(promptKey) === 'true') return;
+                localStorage.setItem(promptKey, 'true');
+                setTimeout(() => this.showFirstRunImportPrompt(), 1200);
+            } catch (error) {
+                console.warn('⚠️ تعذر فحص الأسئلة عند أول تشغيل:', error);
+            }
+        },
+
+        showFirstRunImportPrompt() {
+            if (document.getElementById('first-run-import-modal')) return;
+            const translate = (key, fallback) => typeof global.t === 'function' ? global.t(key, fallback) : fallback;
+            const title = translate('first_run_import_title', 'مرحباً بك عزيزي الطالب');
+            const message = translate('first_run_import_message', 'وسعداء باستخدامك لمنصتنا التعليمية.\\n\\nولكن بما أن تشغيل تطبيق «المنصة التعليمية» هذا هو أول تشغيل، فمن البديهي عدم وجود أسئلة للمواد الدراسية الخاصة بك.\\n\\nلذلك ينبغي عليك الاطلاع على طريقة استيراد الأسئلة التالية:');
+            const buttonText = translate('first_run_import_button', 'طريقة استيراد أسئلة');
+            const modal = document.createElement('div');
+            modal.id = 'first-run-import-modal';
+            modal.className = 'modal active';
+            modal.setAttribute('role', 'dialog');
+            modal.setAttribute('aria-modal', 'true');
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width:620px;">
+                    <div class="modal-header">
+                        <h2 class="modal-title">🎓 ${title}</h2>
+                        <button class="close-btn" id="first-run-import-close" aria-label="${translate('close', 'إغلاق')}">×</button>
+                    </div>
+                    <div class="modal-body" style="line-height:1.9; white-space:pre-line; color:var(--text-secondary);">${message}</div>
+                    <div class="category-actions" style="margin-top:18px;">
+                        <button class="btn btn-primary" id="first-run-import-help">📘 ${buttonText}</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+            const close = () => modal.remove();
+            modal.querySelector('#first-run-import-close')?.addEventListener('click', close);
+            modal.querySelector('#first-run-import-help')?.addEventListener('click', () => {
+                close();
+                if (global.UI && typeof global.UI.showHowToImport === 'function') global.UI.showHowToImport();
+                else if (global.UI && typeof global.UI.openManageModal === 'function') global.UI.openManageModal();
+            });
         },
 
         showFirstTimeTips() {
