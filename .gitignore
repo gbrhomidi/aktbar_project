@@ -13,6 +13,7 @@ expo-env.d.ts
 .kotlin/
 *.orig.*
 *.jks
+*.keystore
 *.p8
 *.p12
 *.key
@@ -32,6 +33,7 @@ yarn-error.*
 
 # local env files
 .env*.local
+android/release-signing.properties
 
 # typescript
 *.tsbuildinfo
@@ -40,7 +42,11 @@ app-example
 
 # generated native folders
 /ios
-/android
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+/android/app/debug.keystore
 
 # IDE
 .vscode/
