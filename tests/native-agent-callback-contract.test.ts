@@ -86,4 +86,13 @@ describe("Android Telegram agent callback contract", () => {
     expect(moduleSource).toContain("requestBatteryOptimizationExemption")
     expect(manifestSource).toContain("android.permission.SEND_SMS")
   });
+
+  it("finalizes video safely at a critical battery level and keeps customizable SMS templates encrypted", () => {
+    ["smsInternetLossMessage", "smsLowBatteryMessage"].forEach((key) => expect(configSource).toContain(`\"${key}\"`));
+    expect(source).toContain("health.batteryPercent in 0..4")
+    expect(source).toContain("camera.stopVideoRecording()")
+    expect(source).toContain("حفظ فيديو آمن")
+    expect(source).toContain("config.smsLowBatteryMessage.replace")
+    expect(source).toContain("config.smsInternetLossMessage")
+  });
 });

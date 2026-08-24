@@ -5,6 +5,7 @@ import * as Notifications from "expo-notifications";
 import Slider from "@react-native-community/slider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   I18nManager,
   PermissionsAndroid,
@@ -71,6 +72,8 @@ export default function AgentHomeScreen() {
   const [hardwareTest, setHardwareTest] = useState<HardwareTestResult | null>(null);
   const [smsTest, setSmsTest] = useState<ChannelTestResult | null>(null);
   const [deviceHealth, setDeviceHealth] = useState<DeviceHealth | null>(null);
+  const [connectionCheck, setConnectionCheck] = useState<"telegram" | "gmail" | null>(null);
+  const [connectionProgress, setConnectionProgress] = useState("");
 
   const hydrated = useMemo(() => isTelegramSettingsReady(settings.botToken, settings.chatId) || storedConfigReady, [settings.botToken, settings.chatId, storedConfigReady]);
 
@@ -112,22 +115,32 @@ export default function AgentHomeScreen() {
 
   const runTelegramTest = async () => {
     setBusy(true);
+    setConnectionCheck("telegram");
+    setConnectionProgress("جارٍ حفظ الإعدادات المشفرة والتحقق من Bot Token مع Telegram…");
+    setTelegramTest(null);
     try {
       setTelegramTest(await testTelegramConnection(settings));
     } catch (error) {
       setTelegramTest({ ok: false, message: error instanceof Error ? error.message : "فشل اختبار Telegram." });
     } finally {
+      setConnectionCheck(null);
+      setConnectionProgress("");
       setBusy(false);
     }
   };
 
   const runGmailTest = async () => {
     setBusy(true);
+    setConnectionCheck("gmail");
+    setConnectionProgress("جارٍ التحقق من خادم SMTP وبيانات Gmail المشفرة…");
+    setGmailTest(null);
     try {
       setGmailTest(await testGmailConnection(settings));
     } catch (error) {
       setGmailTest({ ok: false, message: error instanceof Error ? error.message : "فشل اختبار Gmail." });
     } finally {
+      setConnectionCheck(null);
+      setConnectionProgress("");
       setBusy(false);
     }
   };
@@ -294,7 +307,7 @@ export default function AgentHomeScreen() {
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
           {section === "overview" && <Overview status={status} health={deviceHealth} ready={hydrated} busy={busy} onStart={() => void runStart()} onStop={() => void runStop()} onOpenTelegram={() => setSection("telegram")} />}
-          {section === "telegram" && <TelegramSettings settings={settings} update={update} tokenVisible={tokenVisible} setTokenVisible={setTokenVisible} gmailPasswordVisible={gmailPasswordVisible} setGmailPasswordVisible={setGmailPasswordVisible} telegramTest={telegramTest} gmailTest={gmailTest} busy={busy} onSave={() => void save()} onTestTelegram={() => void runTelegramTest()} onTestGmail={() => void runGmailTest()} onForget={forgetSecrets} />}
+          {section === "telegram" && <TelegramSettings settings={settings} update={update} tokenVisible={tokenVisible} setTokenVisible={setTokenVisible} gmailPasswordVisible={gmailPasswordVisible} setGmailPasswordVisible={setGmailPasswordVisible} telegramTest={telegramTest} gmailTest={gmailTest} activeCheck={connectionCheck} progressText={connectionProgress} busy={busy} onSave={() => void save()} onTestTelegram={() => void runTelegramTest()} onTestGmail={() => void runGmailTest()} onForget={forgetSecrets} />}
           {section === "camera" && <CameraSettings settings={settings} update={update} onSave={() => void save()} />}
           {section === "detection" && <DetectionSettings settings={settings} update={update} onSave={() => void save()} />}
           {section === "alerts" && <AlertSettings settings={settings} update={update} smsTest={smsTest} busy={busy} onSave={() => void save()} onTestSms={() => void runSmsTest()} />}
@@ -333,7 +346,7 @@ function Overview({ status, health, ready, busy, onStart, onStop, onOpenTelegram
   </>;
 }
 
-function TelegramSettings({ settings, update, tokenVisible, setTokenVisible, gmailPasswordVisible, setGmailPasswordVisible, telegramTest, gmailTest, busy, onSave, onTestTelegram, onTestGmail, onForget }: { settings: AgentSettings; update: <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => void; tokenVisible: boolean; setTokenVisible: (value: boolean) => void; gmailPasswordVisible: boolean; setGmailPasswordVisible: (value: boolean) => void; telegramTest: ChannelTestResult | null; gmailTest: ChannelTestResult | null; busy: boolean; onSave: () => void; onTestTelegram: () => void; onTestGmail: () => void; onForget: () => void }) {
+function TelegramSettings({ settings, update, tokenVisible, setTokenVisible, gmailPasswordVisible, setGmailPasswordVisible, telegramTest, gmailTest, activeCheck, progressText, busy, onSave, onTestTelegram, onTestGmail, onForget }: { settings: AgentSettings; update: <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => void; tokenVisible: boolean; setTokenVisible: (value: boolean) => void; gmailPasswordVisible: boolean; setGmailPasswordVisible: (value: boolean) => void; telegramTest: ChannelTestResult | null; gmailTest: ChannelTestResult | null; activeCheck: "telegram" | "gmail" | null; progressText: string; busy: boolean; onSave: () => void; onTestTelegram: () => void; onTestGmail: () => void; onForget: () => void }) {
   return <View style={styles.sectionStack}>
     <SectionHeader icon="send" title="إعدادات Telegram وGmail" text="تُحفظ الأسرار في تخزين Android المشفر على الهاتف. لا تُرسل إلى خادم التطبيق أو بيئة الواجهة." />
     <Field label="Bot Token" value={settings.botToken} secure={!tokenVisible} placeholder="123456:ABC…" onChangeText={(value) => update("botToken", value)} trailing={<Pressable onPress={() => setTokenVisible(!tokenVisible)} style={({ pressed }) => [styles.trailingAction, pressed && styles.pressed]}><MaterialIcons name={tokenVisible ? "visibility-off" : "visibility"} size={19} color="#8BA4B4" /></Pressable>} />
@@ -341,8 +354,8 @@ function TelegramSettings({ settings, update, tokenVisible, setTokenVisible, gma
     <Field label="User IDs المصرح بها" value={settings.allowedUserIds} placeholder="افصل المعرفات بفاصلة، أو اتركه فارغًا" keyboardType="numbers-and-punctuation" onChangeText={(value) => update("allowedUserIds", value)} />
     <View style={styles.noteCard}><MaterialIcons name="security" size={20} color="#55E0B9" /><Text style={styles.noteText}>يقتصر العامل على Chat ID المحدد. إذا أدخلت User IDs، فلن ينفذ الأوامر إلا منهم. تدعم المجموعات ذات Chat ID السالب.</Text></View>
     <PrimaryButton label="حفظ الإعدادات" icon="save" onPress={onSave} />
-    <SecondaryButton label={busy ? "جارٍ الاختبار…" : "اختبار اتصال Telegram"} icon="cloud-done" disabled={busy} onPress={onTestTelegram} />
-    <TestResult result={telegramTest} />
+    <SecondaryButton label={activeCheck === "telegram" ? "جارٍ اختبار Telegram…" : "اختبار اتصال Telegram"} icon="cloud-done" disabled={busy} onPress={onTestTelegram} />
+    <ConnectionTestStatus active={activeCheck === "telegram"} text={progressText} result={telegramTest} />
 
     <View style={styles.deliveryDivider} />
     <Text style={styles.groupTitle}>نسخة احتياطية عبر Gmail</Text>
@@ -353,8 +366,8 @@ function TelegramSettings({ settings, update, tokenVisible, setTokenVisible, gma
     <Field label="كلمة مرور التطبيق" value={settings.gmailAppPassword} secure={!gmailPasswordVisible} placeholder="كلمة تطبيق Gmail" onChangeText={(value) => update("gmailAppPassword", value)} trailing={<Pressable onPress={() => setGmailPasswordVisible(!gmailPasswordVisible)} style={({ pressed }) => [styles.trailingAction, pressed && styles.pressed]}><MaterialIcons name={gmailPasswordVisible ? "visibility-off" : "visibility"} size={19} color="#8BA4B4" /></Pressable>} />
     <Field label="بريد المستلم" value={settings.gmailRecipient} placeholder="backup@example.com" keyboardType="email-address" onChangeText={(value) => update("gmailRecipient", value)} />
     <View style={styles.noteCard}><MaterialIcons name="vpn-key" size={20} color="#FFC776" /><Text style={styles.noteText}>يحتاج Gmail عادةً إلى كلمة مرور تطبيق عند تفعيل المصادقة الثنائية. استخدم 587 لـ STARTTLS أو 465 لـ SSL، ثم اضغط الاختبار قبل تشغيل العامل.</Text></View>
-    <SecondaryButton label={busy ? "جارٍ الاختبار…" : "اختبار اتصال Gmail"} icon="alternate-email" disabled={busy || !settings.gmailBackupEnabled} onPress={onTestGmail} />
-    <TestResult result={gmailTest} />
+    <SecondaryButton label={activeCheck === "gmail" ? "جارٍ اختبار Gmail…" : "اختبار اتصال Gmail"} icon="alternate-email" disabled={busy || !settings.gmailBackupEnabled} onPress={onTestGmail} />
+    <ConnectionTestStatus active={activeCheck === "gmail"} text={progressText} result={gmailTest} />
     <SecondaryButton label="حذف Bot Token المحلي" icon="delete-outline" destructive onPress={onForget} />
   </View>;
 }
@@ -365,7 +378,10 @@ function AlertSettings({ settings, update, smsTest, busy, onSave, onTestSms }: {
     <ToggleRow label="تفعيل تنبيهات SMS" text="يظل الإرسال معطلاً حتى تضيف رقمًا وتوافق على إذن Android." value={settings.smsAlertsEnabled} onChange={(value) => update("smsAlertsEnabled", value)} />
     <Field label="رقم تنبيه SMS" value={settings.smsAlertPhone} placeholder="مثال: +9665…" keyboardType="phone-pad" onChangeText={(value) => update("smsAlertPhone", value)} />
     <ToggleRow label="تنبيه عند انقطاع الإنترنت" text="يرسل تنبيهًا واحدًا عند انتقال العامل إلى حالة بلا إنترنت." value={settings.smsOnInternetLoss} onChange={(value) => update("smsOnInternetLoss", value)} />
+    <Field label="نص SMS عند انقطاع الإنترنت" value={settings.smsInternetLossMessage} placeholder="اكتب رسالة التنبيه" multiline onChangeText={(value) => update("smsInternetLossMessage", value)} />
     <ToggleRow label="تنبيه بطارية 15%" text="يراقب الفيديو الطويل والخدمة في الخلفية مع كبح تكرار الرسائل 30 دقيقة." value={settings.smsOnLowBattery} onChange={(value) => update("smsOnLowBattery", value)} />
+    <Field label="نص SMS عند انخفاض البطارية" value={settings.smsLowBatteryMessage} placeholder="اكتب رسالة التنبيه" multiline onChangeText={(value) => update("smsLowBatteryMessage", value)} />
+    <View style={styles.noteCard}><MaterialIcons name="data-object" size={20} color="#B9A1FF" /><Text style={styles.noteText}>يمكنك كتابة المتغير «battery» بين قوسين معقوفين داخل رسالة البطارية ليضع العامل النسبة الفعلية تلقائيًا.</Text></View>
     <ToggleRow label="استمرارية العامل" text="يعيد Android تشغيل الخدمة فقط عند قتلها من النظام. لا يتجاوز الإيقاف الصريح أو قرار الشركة المصنعة." value={settings.keepServiceAlive} onChange={(value) => update("keepServiceAlive", value)} />
     <View style={styles.noteCard}><MaterialIcons name="info-outline" size={20} color="#8EC5FF" /><Text style={styles.noteText}>رسالة الاختبار تطلب الإذن ثم تحاول الإرسال من الهاتف. تحقق من الشريحة ورصيد الرسائل؛ نجاح الطلب لا يثبت تسليم الشبكة.</Text></View>
     <PrimaryButton label="حفظ إعدادات التنبيه" icon="save" onPress={onSave} />
@@ -442,13 +458,20 @@ function SectionHeader({ icon, title, text }: { icon: React.ComponentProps<typeo
   return <View style={styles.sectionHeader}><View style={styles.sectionIcon}><MaterialIcons name={icon} size={22} color="#8EC5FF" /></View><View style={styles.headerCopy}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionText}>{text}</Text></View></View>;
 }
 
+function ConnectionTestStatus({ active, text, result }: { active: boolean; text: string; result: ChannelTestResult | null }) {
+  if (active) {
+    return <View style={styles.testProgress}><ActivityIndicator size="small" color="#8EC5FF" /><View style={styles.progressCopy}><Text style={styles.progressTitle}>جارٍ اختبار الاتصال</Text><Text style={styles.progressText}>{text}</Text></View></View>;
+  }
+  return <TestResult result={result} />;
+}
+
 function TestResult({ result }: { result: ChannelTestResult | null }) {
   if (!result) return null;
   return <View style={[styles.testResult, result.ok ? styles.testSuccess : styles.testFailure]}><MaterialIcons name={result.ok ? "check-circle" : "error-outline"} size={19} color={result.ok ? "#55E0B9" : "#FFB4BD"} /><Text style={[styles.testText, !result.ok && styles.testErrorText]}>{result.message}</Text></View>;
 }
 
-function Field({ label, value, placeholder, onChangeText, secure, keyboardType, trailing }: { label: string; value: string; placeholder: string; onChangeText: (value: string) => void; secure?: boolean; keyboardType?: React.ComponentProps<typeof TextInput>["keyboardType"]; trailing?: React.ReactNode }) {
-  return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><View style={styles.inputShell}><TextInput style={styles.input} value={value} placeholder={placeholder} placeholderTextColor="#5F788A" secureTextEntry={secure} autoCapitalize="none" autoCorrect={false} keyboardType={keyboardType} onChangeText={onChangeText} textAlign="left" /><View>{trailing}</View></View></View>;
+function Field({ label, value, placeholder, onChangeText, secure, keyboardType, trailing, multiline = false }: { label: string; value: string; placeholder: string; onChangeText: (value: string) => void; secure?: boolean; keyboardType?: React.ComponentProps<typeof TextInput>["keyboardType"]; trailing?: React.ReactNode; multiline?: boolean }) {
+  return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><View style={[styles.inputShell, multiline && styles.inputShellMultiline]}><TextInput style={[styles.input, multiline && styles.inputMultiline]} value={value} placeholder={placeholder} placeholderTextColor="#5F788A" secureTextEntry={secure} autoCapitalize="none" autoCorrect={false} keyboardType={keyboardType} onChangeText={onChangeText} textAlign="left" multiline={multiline} numberOfLines={multiline ? 3 : 1} textAlignVertical={multiline ? "top" : "center"} /><View>{trailing}</View></View></View>;
 }
 
 function ToggleRow({ label, text, value, onChange, compact = false }: { label: string; text?: string; value: boolean; onChange: (value: boolean) => void; compact?: boolean }) {
@@ -526,6 +549,10 @@ const styles = StyleSheet.create({
   noteText: { flex: 1, color: "#BBD3E2", fontSize: 12, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
   deliveryDivider: { height: 1, backgroundColor: "#214B64", marginVertical: 4 },
   testResult: { flexDirection: "row", alignItems: "flex-start", gap: 9, padding: 12, borderRadius: 14, borderWidth: 1 },
+  testProgress: { flexDirection: "row", alignItems: "center", gap: 10, padding: 13, borderRadius: 14, borderWidth: 1, borderColor: "#2E627E", backgroundColor: "#0C2D43" },
+  progressCopy: { flex: 1, gap: 2 },
+  progressTitle: { color: "#DCEFFA", fontSize: 13, fontWeight: "800", textAlign: "right", writingDirection: "rtl" },
+  progressText: { color: "#9DC7DD", fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
   testSuccess: { backgroundColor: "#0E312E", borderColor: "#1D6A5B" },
   testFailure: { backgroundColor: "#3A2028", borderColor: "#824451" },
   testText: { flex: 1, color: "#C7F6E8", fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
@@ -543,7 +570,9 @@ const styles = StyleSheet.create({
   field: { gap: 7 },
   fieldLabel: { color: "#C9DCE8", fontSize: 13, fontWeight: "700", textAlign: "right", writingDirection: "rtl" },
   inputShell: { minHeight: 52, borderRadius: 15, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#214B64", flexDirection: "row", alignItems: "center", paddingHorizontal: 12 },
+  inputShellMultiline: { alignItems: "flex-start", paddingVertical: 8 },
   input: { flex: 1, color: "#F1F8FC", fontSize: 14, minHeight: 48, writingDirection: "ltr" },
+  inputMultiline: { minHeight: 72, writingDirection: "rtl", textAlign: "right", lineHeight: 20 },
   trailingAction: { padding: 6 },
   toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159", paddingHorizontal: 14, paddingVertical: 13, borderRadius: 16 },
   toggleCompact: { backgroundColor: "#0B2232", paddingVertical: 10, borderColor: "#17384E" },

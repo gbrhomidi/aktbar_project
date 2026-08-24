@@ -15,6 +15,8 @@ export type AgentSettings = {
   smsAlertPhone: string;
   smsOnInternetLoss: boolean;
   smsOnLowBattery: boolean;
+  smsInternetLossMessage: string;
+  smsLowBatteryMessage: string;
   keepServiceAlive: boolean;
   cameraFacing: "back" | "front";
   flashEnabled: boolean;
@@ -87,6 +89,8 @@ export const defaultSettings: AgentSettings = {
   smsAlertPhone: "",
   smsOnInternetLoss: true,
   smsOnLowBattery: true,
+  smsInternetLossMessage: "Akeer14: تعذر الوصول إلى الإنترنت من الهاتف العامل. تحقق من الشبكة.",
+  smsLowBatteryMessage: "Akeer14: بطارية الهاتف العامل منخفضة ({battery}%). اشحن الجهاز فورًا.",
   keepServiceAlive: true,
   cameraFacing: "back",
   flashEnabled: false,
