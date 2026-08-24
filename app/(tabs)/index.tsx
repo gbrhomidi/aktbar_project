@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   I18nManager,
+  PermissionsAndroid,
   Platform,
   Pressable,
   ScrollView,
@@ -22,21 +23,27 @@ import {
   AgentSettings,
   AgentStatus,
   ChannelTestResult,
+  DeviceHealth,
   HardwareTestResult,
   clearAgentSecrets,
   defaultSettings,
   getAgentStatus,
+  getNativeDeviceHealth,
   hasStoredAgentConfig,
   loadSettings,
+  closeAgentUi,
   persistSettings,
+  requestBatteryOptimizationExemption,
   runNativeHardwareTest,
   saveAgentConfig,
   startAgent,
   stopAgent,
   testGmailConnection,
+  testSmsAlert,
   testTelegramConnection,
 } from "@/lib/telegram-agent";
 import { isTelegramSettingsReady } from "@/lib/agent-protocol";
+import { useThemeContext } from "@/lib/theme-provider";
 
 I18nManager.allowRTL(true);
 
@@ -48,9 +55,10 @@ const initialStatus: AgentStatus = {
   lastError: "",
 };
 
-type Section = "overview" | "telegram" | "camera" | "detection" | "diagnostics";
+type Section = "overview" | "telegram" | "camera" | "detection" | "alerts" | "diagnostics" | "terms";
 
 export default function AgentHomeScreen() {
+  const { colorScheme, setColorScheme } = useThemeContext();
   const [section, setSection] = useState<Section>("overview");
   const [settings, setSettings] = useState<AgentSettings>(defaultSettings);
   const [status, setStatus] = useState<AgentStatus>(initialStatus);
@@ -61,6 +69,8 @@ export default function AgentHomeScreen() {
   const [telegramTest, setTelegramTest] = useState<ChannelTestResult | null>(null);
   const [gmailTest, setGmailTest] = useState<ChannelTestResult | null>(null);
   const [hardwareTest, setHardwareTest] = useState<HardwareTestResult | null>(null);
+  const [smsTest, setSmsTest] = useState<ChannelTestResult | null>(null);
+  const [deviceHealth, setDeviceHealth] = useState<DeviceHealth | null>(null);
 
   const hydrated = useMemo(() => isTelegramSettingsReady(settings.botToken, settings.chatId) || storedConfigReady, [settings.botToken, settings.chatId, storedConfigReady]);
 
@@ -72,13 +82,22 @@ export default function AgentHomeScreen() {
     }
   }, []);
 
+  const refreshDeviceHealth = useCallback(async () => {
+    try {
+      setDeviceHealth(await getNativeDeviceHealth());
+    } catch {
+      setDeviceHealth(null);
+    }
+  }, []);
+
   useEffect(() => {
     void (async () => {
       setSettings(await loadSettings());
       setStoredConfigReady(await hasStoredAgentConfig());
       await refreshStatus();
+      await refreshDeviceHealth();
     })();
-  }, [refreshStatus]);
+  }, [refreshDeviceHealth, refreshStatus]);
 
   const update = <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => {
     setSettings((current) => ({ ...current, [key]: value }));
@@ -125,12 +144,55 @@ export default function AgentHomeScreen() {
     }
   };
 
+  const runSmsTest = async () => {
+    setBusy(true);
+    try {
+      if (Platform.OS === "android") {
+        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.SEND_SMS, {
+          title: "إذن رسائل SMS",
+          message: "يحتاج العامل هذا الإذن لإرسال تنبيهك المختار عند غياب الإنترنت أو انخفاض البطارية.",
+          buttonPositive: "سماح",
+          buttonNegative: "ليس الآن",
+        });
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          setSmsTest({ ok: false, message: "لم يُمنح إذن SEND_SMS؛ لم تُرسل رسالة اختبار." });
+          return;
+        }
+      }
+      setSmsTest(await testSmsAlert(settings));
+      await refreshDeviceHealth();
+    } catch (error) {
+      setSmsTest({ ok: false, message: error instanceof Error ? error.message : "فشل اختبار SMS." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const requestBatteryExemption = async () => {
+    try {
+      await requestBatteryOptimizationExemption();
+      Alert.alert("تحسين البطارية", "افتح صفحة النظام ووافق فقط إذا ظهرت نافذة السماح. لا يستطيع التطبيق تجاوز قرار النظام أو الشركة المصنعة.");
+    } catch (error) {
+      Alert.alert("تعذر فتح الإعداد", error instanceof Error ? error.message : "تعذر فتح إعداد تحسين البطارية.");
+    }
+  };
+
+  const closeUi = () => {
+    Alert.alert("إغلاق الواجهة", "سيُرسل التطبيق إلى الخلفية فقط. لا يوقف هذا العامل إذا كانت خدمة Android النشطة تعمل.", [
+      { text: "إلغاء", style: "cancel" },
+      { text: "إرسال للخلفية", onPress: () => { void closeAgentUi(); } },
+    ]);
+  };
+
   const requestPermissions = async () => {
     const [camera, microphone] = await Promise.all([
       Camera.requestCameraPermissionsAsync(),
       Camera.requestMicrophonePermissionsAsync(),
     ]);
     if (Platform.OS !== "web") await Notifications.requestPermissionsAsync();
+    if (settings.smsAlertsEnabled && Platform.OS === "android") {
+      await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.SEND_SMS);
+    }
     if (!camera.granted || !microphone.granted) {
       Alert.alert("صلاحيات مطلوبة", "يحتاج العامل صلاحية الكاميرا والميكروفون لتنفيذ الصورة والفيديو والصوت.");
       return false;
@@ -191,7 +253,7 @@ export default function AgentHomeScreen() {
 
   return (
     <ScreenContainer edges={["top", "left", "right"]} containerClassName="bg-background">
-      <View style={styles.root}>
+      <View style={[styles.root, colorScheme === "light" && styles.rootLight]}>
         <View style={styles.topBar}>
           <View style={styles.brandRow}>
             <View style={styles.brandIcon}><MaterialIcons name="security" size={22} color="#B8E7FF" /></View>
@@ -200,9 +262,17 @@ export default function AgentHomeScreen() {
               <Text style={styles.subtitle}>تحكم Telegram من الهاتف الثابت</Text>
             </View>
           </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="تحديث الحالة" onPress={() => void refreshStatus()} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
-            <MaterialIcons name="refresh" size={22} color="#DCEFFA" />
-          </Pressable>
+          <View style={styles.topActions}>
+            <Pressable accessibilityRole="button" accessibilityLabel="تبديل الوضع الفاتح أو المظلم" onPress={() => setColorScheme(colorScheme === "dark" ? "light" : "dark")} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+              <MaterialIcons name={colorScheme === "dark" ? "light-mode" : "dark-mode"} size={21} color="#DCEFFA" />
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="إرسال التطبيق إلى الخلفية" onPress={closeUi} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+              <MaterialIcons name="close" size={22} color="#FFCDD3" />
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="تحديث الحالة" onPress={() => { void refreshStatus(); void refreshDeviceHealth(); }} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+              <MaterialIcons name="refresh" size={22} color="#DCEFFA" />
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.segmented}>
@@ -211,7 +281,9 @@ export default function AgentHomeScreen() {
             ["telegram", "Telegram", "send"],
             ["camera", "الكاميرا", "photo-camera"],
             ["detection", "الكشف", "sensors"],
+            ["alerts", "التنبيهات", "sms"],
             ["diagnostics", "التشخيص", "fact-check"],
+            ["terms", "الشروط", "gavel"],
           ] as const).map(([id, label, icon]) => (
             <Pressable key={id} accessibilityRole="tab" onPress={() => setSection(id)} style={({ pressed }) => [styles.tab, section === id && styles.tabActive, pressed && styles.pressed]}>
               <MaterialIcons name={icon} size={17} color={section === id ? "#071C2C" : "#8BA4B4"} />
@@ -221,18 +293,20 @@ export default function AgentHomeScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-          {section === "overview" && <Overview status={status} ready={hydrated} busy={busy} onStart={() => void runStart()} onStop={() => void runStop()} onOpenTelegram={() => setSection("telegram")} />}
+          {section === "overview" && <Overview status={status} health={deviceHealth} ready={hydrated} busy={busy} onStart={() => void runStart()} onStop={() => void runStop()} onOpenTelegram={() => setSection("telegram")} />}
           {section === "telegram" && <TelegramSettings settings={settings} update={update} tokenVisible={tokenVisible} setTokenVisible={setTokenVisible} gmailPasswordVisible={gmailPasswordVisible} setGmailPasswordVisible={setGmailPasswordVisible} telegramTest={telegramTest} gmailTest={gmailTest} busy={busy} onSave={() => void save()} onTestTelegram={() => void runTelegramTest()} onTestGmail={() => void runGmailTest()} onForget={forgetSecrets} />}
           {section === "camera" && <CameraSettings settings={settings} update={update} onSave={() => void save()} />}
           {section === "detection" && <DetectionSettings settings={settings} update={update} onSave={() => void save()} />}
-          {section === "diagnostics" && <Diagnostics status={status} hardwareTest={hardwareTest} busy={busy} onRefresh={() => void refreshStatus()} onHardwareTest={() => void runHardwareTest()} />}
+          {section === "alerts" && <AlertSettings settings={settings} update={update} smsTest={smsTest} busy={busy} onSave={() => void save()} onTestSms={() => void runSmsTest()} />}
+          {section === "diagnostics" && <Diagnostics status={status} health={deviceHealth} hardwareTest={hardwareTest} busy={busy} onRefresh={() => { void refreshStatus(); void refreshDeviceHealth(); }} onHardwareTest={() => void runHardwareTest()} onRequestBatteryExemption={() => void requestBatteryExemption()} />}
+          {section === "terms" && <TermsAndConditions />}
         </ScrollView>
       </View>
     </ScreenContainer>
   );
 }
 
-function Overview({ status, ready, busy, onStart, onStop, onOpenTelegram }: { status: AgentStatus; ready: boolean; busy: boolean; onStart: () => void; onStop: () => void; onOpenTelegram: () => void }) {
+function Overview({ status, health, ready, busy, onStart, onStop, onOpenTelegram }: { status: AgentStatus; health: DeviceHealth | null; ready: boolean; busy: boolean; onStart: () => void; onStop: () => void; onOpenTelegram: () => void }) {
   return <>
     <View style={[styles.statusCard, status.running ? styles.statusReady : styles.statusIdle]}>
       <View style={styles.statusIcon}><MaterialIcons name={status.running ? "shield" : "shield"} size={30} color={status.running ? "#55E0B9" : "#FFC776"} /></View>
@@ -247,6 +321,8 @@ function Overview({ status, ready, busy, onStart, onStop, onOpenTelegram }: { st
       <Metric icon="notifications-active" label="الإشعار" value={status.running ? "مستمر" : "غير نشط"} color="#B9A1FF" />
       <Metric icon="camera-alt" label="الكاميرا" value="من خدمة Android" color="#55E0B9" />
       <Metric icon="mic" label="الميكروفون" value="حسب الأمر" color="#FFC776" />
+      <Metric icon="battery-full" label="البطارية" value={health?.batteryPercent != null && health.batteryPercent >= 0 ? `${health.batteryPercent}%${health.charging ? " • شحن" : ""}` : "غير متاح"} color={health?.batteryPercent != null && health.batteryPercent <= 15 ? "#FFC776" : "#55E0B9"} />
+      <Metric icon="wifi" label="الإنترنت" value={health ? (health.internetReachable ? "متاح" : "غير متاح") : "غير متاح"} color={health?.internetReachable ? "#55E0B9" : "#FFB4BD"} />
     </View>
     {!ready && <View style={styles.warningCard}><MaterialIcons name="key" size={22} color="#FFC776" /><View style={styles.warningCopy}><Text style={styles.warningTitle}>يلزم إعداد Telegram</Text><Text style={styles.warningText}>أدخل token ومعرّف المحادثة قبل بدء خدمة العامل.</Text><Pressable onPress={onOpenTelegram} style={({ pressed }) => [styles.textAction, pressed && styles.pressed]}><Text style={styles.textActionText}>فتح الإعدادات</Text></Pressable></View></View>}
     <View style={styles.actionRow}>
@@ -283,6 +359,21 @@ function TelegramSettings({ settings, update, tokenVisible, setTokenVisible, gma
   </View>;
 }
 
+function AlertSettings({ settings, update, smsTest, busy, onSave, onTestSms }: { settings: AgentSettings; update: <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => void; smsTest: ChannelTestResult | null; busy: boolean; onSave: () => void; onTestSms: () => void }) {
+  return <View style={styles.sectionStack}>
+    <SectionHeader icon="sms" title="تنبيهات SMS واستمرارية العامل" text="تعمل التنبيهات من خدمة Android الأصلية بعد تفعيل صريح ومنح إذن SEND_SMS. لا يُحفظ رقم التنبيه في التخزين العام للواجهة." />
+    <ToggleRow label="تفعيل تنبيهات SMS" text="يظل الإرسال معطلاً حتى تضيف رقمًا وتوافق على إذن Android." value={settings.smsAlertsEnabled} onChange={(value) => update("smsAlertsEnabled", value)} />
+    <Field label="رقم تنبيه SMS" value={settings.smsAlertPhone} placeholder="مثال: +9665…" keyboardType="phone-pad" onChangeText={(value) => update("smsAlertPhone", value)} />
+    <ToggleRow label="تنبيه عند انقطاع الإنترنت" text="يرسل تنبيهًا واحدًا عند انتقال العامل إلى حالة بلا إنترنت." value={settings.smsOnInternetLoss} onChange={(value) => update("smsOnInternetLoss", value)} />
+    <ToggleRow label="تنبيه بطارية 15%" text="يراقب الفيديو الطويل والخدمة في الخلفية مع كبح تكرار الرسائل 30 دقيقة." value={settings.smsOnLowBattery} onChange={(value) => update("smsOnLowBattery", value)} />
+    <ToggleRow label="استمرارية العامل" text="يعيد Android تشغيل الخدمة فقط عند قتلها من النظام. لا يتجاوز الإيقاف الصريح أو قرار الشركة المصنعة." value={settings.keepServiceAlive} onChange={(value) => update("keepServiceAlive", value)} />
+    <View style={styles.noteCard}><MaterialIcons name="info-outline" size={20} color="#8EC5FF" /><Text style={styles.noteText}>رسالة الاختبار تطلب الإذن ثم تحاول الإرسال من الهاتف. تحقق من الشريحة ورصيد الرسائل؛ نجاح الطلب لا يثبت تسليم الشبكة.</Text></View>
+    <PrimaryButton label="حفظ إعدادات التنبيه" icon="save" onPress={onSave} />
+    <SecondaryButton label={busy ? "جارٍ اختبار SMS…" : "إرسال SMS اختبار"} icon="send" disabled={busy || !settings.smsAlertsEnabled || !settings.smsAlertPhone.trim()} onPress={onTestSms} />
+    <TestResult result={smsTest} />
+  </View>;
+}
+
 function CameraSettings({ settings, update, onSave }: { settings: AgentSettings; update: <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => void; onSave: () => void }) {
   return <View style={styles.sectionStack}>
     <SectionHeader icon="photo-camera" title="الكاميرا والوسائط" text="تطبّق هذه الإعدادات في CameraX عند تشغيل العامل أو عند وصول callback Telegram." />
@@ -312,13 +403,16 @@ function DetectionSettings({ settings, update, onSave }: { settings: AgentSettin
   </View>;
 }
 
-function Diagnostics({ status, hardwareTest, busy, onRefresh, onHardwareTest }: { status: AgentStatus; hardwareTest: HardwareTestResult | null; busy: boolean; onRefresh: () => void; onHardwareTest: () => void }) {
+function Diagnostics({ status, health, hardwareTest, busy, onRefresh, onHardwareTest, onRequestBatteryExemption }: { status: AgentStatus; health: DeviceHealth | null; hardwareTest: HardwareTestResult | null; busy: boolean; onRefresh: () => void; onHardwareTest: () => void; onRequestBatteryExemption: () => void }) {
   return <View style={styles.sectionStack}>
     <SectionHeader icon="fact-check" title="تشخيص التنفيذ" text="تعكس هذه البطاقة آخر حالة مسجلة من خدمة Android، ولا تضع نتائج افتراضية." />
     <DiagnosticRow label="المرحلة" value={status.phase} />
     <DiagnosticRow label="الرسالة" value={status.message} />
     <DiagnosticRow label="آخر تحديث" value={status.updatedAt || "غير متاح"} />
     <DiagnosticRow label="آخر خطأ" value={status.lastError || "لا يوجد"} error={Boolean(status.lastError)} />
+    <DiagnosticRow label="البطارية" value={health?.batteryPercent != null && health.batteryPercent >= 0 ? `${health.batteryPercent}%${health.charging ? " • متصل بالشحن" : ""}` : "غير متاح في المعاينة"} error={Boolean(health?.batteryPercent != null && health.batteryPercent <= 15)} />
+    <DiagnosticRow label="الإنترنت" value={health ? (health.internetReachable ? "متاح" : "غير متاح") : "غير متاح في المعاينة"} error={health?.internetReachable === false} />
+    <DiagnosticRow label="إذن SMS" value={health?.smsPermissionGranted ? "ممنوح" : "غير ممنوح أو غير متاح"} error={health?.smsPermissionGranted === false} />
     <PrimaryButton label="تحديث الحالة" icon="refresh" onPress={onRefresh} />
     <View style={styles.deliveryDivider} />
     <Text style={styles.groupTitle}>فحص الكاميرا والميكروفون</Text>
@@ -326,6 +420,17 @@ function Diagnostics({ status, hardwareTest, busy, onRefresh, onHardwareTest }: 
     <SecondaryButton label={busy ? "جارٍ الفحص…" : "فحص الكاميرا والميكروفون"} icon="settings-input-component" disabled={busy || status.running} onPress={onHardwareTest} />
     {hardwareTest ? <View style={styles.hardwareResult}><TestResult result={{ ok: hardwareTest.cameraOk, message: hardwareTest.cameraDetail }} /><TestResult result={{ ok: hardwareTest.microphoneOk, message: hardwareTest.microphoneDetail }} /></View> : null}
     <View style={styles.noteCard}><MaterialIcons name="battery-alert" size={20} color="#FFC776" /><Text style={styles.noteText}>يجب أن يبقى الإشعار المستمر ظاهرًا بعد التشغيل. إذا قيّد الهاتف التطبيق، أضف التطبيق إلى الاستثناء من تحسين البطارية من إعدادات النظام.</Text></View>
+    <SecondaryButton label="طلب استثناء تحسين البطارية" icon="battery-charging-full" onPress={onRequestBatteryExemption} />
+  </View>;
+}
+
+function TermsAndConditions() {
+  return <View style={styles.sectionStack}>
+    <SectionHeader icon="gavel" title="الشروط والأحكام" text="ملخص تشغيلي مخصص لنظام Akeer14 للمراقبة الذكية." />
+    <View style={styles.termsCard}><Text style={styles.termsTitle}>الاستخدام المصرح</Text><Text style={styles.termsText}>استخدم العامل على جهاز تملكه أو لديك تفويض صريح لإدارته. لا تستخدم الكاميرا أو الميكروفون أو التنبيهات لمراقبة الآخرين دون موافقتهم أو بخلاف القوانين المحلية.</Text></View>
+    <View style={styles.termsCard}><Text style={styles.termsTitle}>الأدلة والبيانات</Text><Text style={styles.termsText}>تُحفظ بيانات Telegram وGmail ورقم SMS داخل تخزين Android مشفّر. مسؤولية حماية الهاتف وبيانات الاعتماد والمحتوى المسجل تقع على مالك الجهاز.</Text></View>
+    <View style={styles.termsCard}><Text style={styles.termsTitle}>التنبيهات والاتصال</Text><Text style={styles.termsText}>تعتمد نتائج Telegram وGmail وSMS على الشبكة والشريحة والصلاحيات والخدمات الخارجية. يحد التطبيق من تكرار SMS لكنه لا يضمن التسليم أو استمرار الشبكة.</Text></View>
+    <View style={styles.termsCard}><Text style={styles.termsTitle}>الخلفية والطاقة</Text><Text style={styles.termsText}>يستخدم التطبيق إشعار foreground وخيار استثناء تحسين البطارية بطلب منك. قد تفرض الأجهزة أو أنظمة التشغيل قيودًا لا يستطيع التطبيق تجاوزها، ويمنع الإيقاف القسري أي إعادة تشغيل تلقائية.</Text></View>
   </View>;
 }
 
@@ -376,14 +481,16 @@ function SecondaryButton({ label, icon, onPress, disabled = false, destructive =
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#071C2C" },
+  rootLight: { backgroundColor: "#EAF5FA" },
   topBar: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  topActions: { flexDirection: "row", alignItems: "center", gap: 7 },
   brandIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: "#10334D", alignItems: "center", justifyContent: "center" },
   title: { color: "#F1F8FC", fontSize: 20, fontWeight: "800", writingDirection: "rtl" },
   subtitle: { color: "#8BA4B4", fontSize: 12, marginTop: 2, writingDirection: "rtl" },
   iconButton: { width: 42, height: 42, borderRadius: 14, backgroundColor: "#102E43", alignItems: "center", justifyContent: "center" },
-  segmented: { flexDirection: "row", borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#17384E", paddingVertical: 7, paddingHorizontal: 8, gap: 5 },
-  tab: { minWidth: 58, flex: 1, paddingVertical: 8, alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 12 },
+  segmented: { flexDirection: "row", flexWrap: "wrap", borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#17384E", paddingVertical: 7, paddingHorizontal: 8, gap: 5 },
+  tab: { minWidth: 78, flexGrow: 1, flexBasis: "28%", paddingVertical: 8, alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 12 },
   tabActive: { backgroundColor: "#B8E7FF" },
   tabText: { color: "#8BA4B4", fontSize: 10, fontWeight: "700" },
   tabTextActive: { color: "#071C2C" },
@@ -424,6 +531,9 @@ const styles = StyleSheet.create({
   testText: { flex: 1, color: "#C7F6E8", fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
   testErrorText: { color: "#FFD2D8" },
   hardwareResult: { gap: 8 },
+  termsCard: { gap: 7, padding: 15, borderRadius: 16, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159" },
+  termsTitle: { color: "#B8E7FF", fontSize: 14, fontWeight: "900", writingDirection: "rtl", textAlign: "right" },
+  termsText: { color: "#D1E2EC", fontSize: 12, lineHeight: 20, writingDirection: "rtl", textAlign: "right" },
   sectionStack: { gap: 13 },
   sectionHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 2 },
   sectionIcon: { width: 42, height: 42, backgroundColor: "#102E43", borderRadius: 14, alignItems: "center", justifyContent: "center" },

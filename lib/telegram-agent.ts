@@ -11,6 +11,11 @@ export type AgentSettings = {
   gmailUsername: string;
   gmailAppPassword: string;
   gmailRecipient: string;
+  smsAlertsEnabled: boolean;
+  smsAlertPhone: string;
+  smsOnInternetLoss: boolean;
+  smsOnLowBattery: boolean;
+  keepServiceAlive: boolean;
   cameraFacing: "back" | "front";
   flashEnabled: boolean;
   compressionEnabled: boolean;
@@ -55,6 +60,15 @@ export type HardwareTestResult = {
 export type StoredConfigResult = {
   telegramConfigured: boolean;
   gmailConfigured: boolean;
+  smsConfigured: boolean;
+};
+
+export type DeviceHealth = {
+  batteryPercent: number;
+  charging: boolean;
+  internetReachable: boolean;
+  batteryOptimizationEnabled: boolean;
+  smsPermissionGranted: boolean;
 };
 
 const SETTINGS_KEY = "akeer14.agent.settings.v1";
@@ -69,6 +83,11 @@ export const defaultSettings: AgentSettings = {
   gmailUsername: "",
   gmailAppPassword: "",
   gmailRecipient: "",
+  smsAlertsEnabled: false,
+  smsAlertPhone: "",
+  smsOnInternetLoss: true,
+  smsOnLowBattery: true,
+  keepServiceAlive: true,
   cameraFacing: "back",
   flashEnabled: false,
   compressionEnabled: true,
@@ -107,7 +126,11 @@ type NativeTelegramAgent = {
   saveConfig(settings: AgentSettings): Promise<StoredConfigResult>;
   testTelegram(settings: AgentSettings): Promise<ChannelTestResult>;
   testGmail(settings: AgentSettings): Promise<ChannelTestResult>;
+  testSms(settings: AgentSettings): Promise<ChannelTestResult>;
   runHardwareTest(): Promise<HardwareTestResult>;
+  getDeviceHealth(): Promise<DeviceHealth>;
+  requestBatteryOptimizationExemption(): Promise<boolean>;
+  closeUi(): Promise<boolean>;
 };
 
 function nativeAgent(): NativeTelegramAgent {
@@ -129,7 +152,7 @@ export async function loadSettings(): Promise<AgentSettings> {
 }
 
 export async function persistSettings(settings: AgentSettings): Promise<void> {
-  const { botToken: _token, gmailAppPassword: _gmailPassword, ...nonSecret } = settings;
+  const { botToken: _token, gmailAppPassword: _gmailPassword, smsAlertPhone: _smsPhone, ...nonSecret } = settings;
   await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(nonSecret));
 }
 
@@ -169,6 +192,25 @@ export async function testGmailConnection(settings: AgentSettings): Promise<Chan
   return nativeAgent().testGmail(settings);
 }
 
+export async function testSmsAlert(settings: AgentSettings): Promise<ChannelTestResult> {
+  return nativeAgent().testSms(settings);
+}
+
 export async function runNativeHardwareTest(): Promise<HardwareTestResult> {
   return nativeAgent().runHardwareTest();
+}
+
+export async function getNativeDeviceHealth(): Promise<DeviceHealth> {
+  if (Platform.OS === "web" || !NativeModules.TelegramAgent) {
+    return { batteryPercent: -1, charging: false, internetReachable: false, batteryOptimizationEnabled: false, smsPermissionGranted: false };
+  }
+  return nativeAgent().getDeviceHealth();
+}
+
+export async function requestBatteryOptimizationExemption(): Promise<boolean> {
+  return nativeAgent().requestBatteryOptimizationExemption();
+}
+
+export async function closeAgentUi(): Promise<boolean> {
+  return nativeAgent().closeUi();
 }

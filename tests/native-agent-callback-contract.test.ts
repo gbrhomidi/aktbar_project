@@ -12,6 +12,10 @@ const configPath = resolve(process.cwd(), "android/app/src/main/java/space/manus
 const configSource = readFileSync(configPath, "utf8");
 const gmailPath = resolve(process.cwd(), "android/app/src/main/java/space/manus/akeer14/mobile/agent/t20260824151421/GmailEvidenceSender.kt");
 const gmailSource = readFileSync(gmailPath, "utf8");
+const healthPath = resolve(process.cwd(), "android/app/src/main/java/space/manus/akeer14/mobile/agent/t20260824151421/DeviceHealthMonitor.kt");
+const healthSource = readFileSync(healthPath, "utf8");
+const manifestPath = resolve(process.cwd(), "android/app/src/main/AndroidManifest.xml");
+const manifestSource = readFileSync(manifestPath, "utf8");
 
 describe("Android Telegram agent callback contract", () => {
   it("contains the core akeer14 media and system callback routes", () => {
@@ -67,5 +71,19 @@ describe("Android Telegram agent callback contract", () => {
     expect(moduleSource).toContain("fun runHardwareTest")
     expect(gmailSource).toContain("transport.connect")
     expect(gmailSource).toContain("Transport.send")
+  });
+
+  it("monitors device health and restricts SMS fallback to explicit local configuration", () => {
+    ["smsAlertsEnabled", "smsAlertPhone", "smsOnInternetLoss", "smsOnLowBattery", "keepServiceAlive"].forEach((key) => expect(configSource).toContain(`\"${key}\"`));
+    expect(source).toContain("Service.START_STICKY")
+    expect(source).toContain("startHealthMonitoring()")
+    expect(source).toContain("withLongVideoBatteryMonitoring")
+    expect(source).toContain("SmsAlertDispatcher")
+    expect(healthSource).toContain("NET_CAPABILITY_VALIDATED")
+    expect(healthSource).toContain("MIN_ALERT_INTERVAL_MILLIS")
+    expect(moduleSource).toContain("fun testSms")
+    expect(moduleSource).toContain("fun getDeviceHealth")
+    expect(moduleSource).toContain("requestBatteryOptimizationExemption")
+    expect(manifestSource).toContain("android.permission.SEND_SMS")
   });
 });
