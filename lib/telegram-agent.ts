@@ -5,6 +5,12 @@ export type AgentSettings = {
   botToken: string;
   chatId: string;
   allowedUserIds: string;
+  gmailBackupEnabled: boolean;
+  gmailHost: string;
+  gmailPort: number;
+  gmailUsername: string;
+  gmailAppPassword: string;
+  gmailRecipient: string;
   cameraFacing: "back" | "front";
   flashEnabled: boolean;
   compressionEnabled: boolean;
@@ -34,12 +40,35 @@ export type AgentStatus = {
   lastError: string;
 };
 
+export type ChannelTestResult = {
+  ok: boolean;
+  message: string;
+};
+
+export type HardwareTestResult = {
+  cameraOk: boolean;
+  cameraDetail: string;
+  microphoneOk: boolean;
+  microphoneDetail: string;
+};
+
+export type StoredConfigResult = {
+  telegramConfigured: boolean;
+  gmailConfigured: boolean;
+};
+
 const SETTINGS_KEY = "akeer14.agent.settings.v1";
 
 export const defaultSettings: AgentSettings = {
   botToken: "",
   chatId: "",
   allowedUserIds: "",
+  gmailBackupEnabled: false,
+  gmailHost: "smtp.gmail.com",
+  gmailPort: 587,
+  gmailUsername: "",
+  gmailAppPassword: "",
+  gmailRecipient: "",
   cameraFacing: "back",
   flashEnabled: false,
   compressionEnabled: true,
@@ -75,6 +104,10 @@ type NativeTelegramAgent = {
   getStatus(): Promise<AgentStatus>;
   hasStoredConfig(): Promise<boolean>;
   clearSecrets(): Promise<boolean>;
+  saveConfig(settings: AgentSettings): Promise<StoredConfigResult>;
+  testTelegram(settings: AgentSettings): Promise<ChannelTestResult>;
+  testGmail(settings: AgentSettings): Promise<ChannelTestResult>;
+  runHardwareTest(): Promise<HardwareTestResult>;
 };
 
 function nativeAgent(): NativeTelegramAgent {
@@ -96,8 +129,14 @@ export async function loadSettings(): Promise<AgentSettings> {
 }
 
 export async function persistSettings(settings: AgentSettings): Promise<void> {
-  const { botToken: _token, ...nonSecret } = settings;
+  const { botToken: _token, gmailAppPassword: _gmailPassword, ...nonSecret } = settings;
   await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(nonSecret));
+}
+
+export async function saveAgentConfig(settings: AgentSettings): Promise<StoredConfigResult | null> {
+  await persistSettings(settings);
+  if (Platform.OS === "web" || !NativeModules.TelegramAgent) return null;
+  return nativeAgent().saveConfig(settings);
 }
 
 export async function startAgent(settings: AgentSettings): Promise<AgentStatus> {
@@ -120,4 +159,16 @@ export async function hasStoredAgentConfig(): Promise<boolean> {
 
 export async function clearAgentSecrets(): Promise<void> {
   await nativeAgent().clearSecrets();
+}
+
+export async function testTelegramConnection(settings: AgentSettings): Promise<ChannelTestResult> {
+  return nativeAgent().testTelegram(settings);
+}
+
+export async function testGmailConnection(settings: AgentSettings): Promise<ChannelTestResult> {
+  return nativeAgent().testGmail(settings);
+}
+
+export async function runNativeHardwareTest(): Promise<HardwareTestResult> {
+  return nativeAgent().runHardwareTest();
 }

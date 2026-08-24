@@ -21,14 +21,20 @@ import { ScreenContainer } from "@/components/screen-container";
 import {
   AgentSettings,
   AgentStatus,
+  ChannelTestResult,
+  HardwareTestResult,
   clearAgentSecrets,
   defaultSettings,
   getAgentStatus,
   hasStoredAgentConfig,
   loadSettings,
   persistSettings,
+  runNativeHardwareTest,
+  saveAgentConfig,
   startAgent,
   stopAgent,
+  testGmailConnection,
+  testTelegramConnection,
 } from "@/lib/telegram-agent";
 import { isTelegramSettingsReady } from "@/lib/agent-protocol";
 
@@ -50,7 +56,11 @@ export default function AgentHomeScreen() {
   const [status, setStatus] = useState<AgentStatus>(initialStatus);
   const [busy, setBusy] = useState(false);
   const [tokenVisible, setTokenVisible] = useState(false);
+  const [gmailPasswordVisible, setGmailPasswordVisible] = useState(false);
   const [storedConfigReady, setStoredConfigReady] = useState(false);
+  const [telegramTest, setTelegramTest] = useState<ChannelTestResult | null>(null);
+  const [gmailTest, setGmailTest] = useState<ChannelTestResult | null>(null);
+  const [hardwareTest, setHardwareTest] = useState<HardwareTestResult | null>(null);
 
   const hydrated = useMemo(() => isTelegramSettingsReady(settings.botToken, settings.chatId) || storedConfigReady, [settings.botToken, settings.chatId, storedConfigReady]);
 
@@ -75,8 +85,44 @@ export default function AgentHomeScreen() {
   };
 
   const save = async () => {
-    await persistSettings(settings);
+    const saved = await saveAgentConfig(settings);
+    if (saved) setStoredConfigReady(saved.telegramConfigured);
     if (Platform.OS !== "web") await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    return saved;
+  };
+
+  const runTelegramTest = async () => {
+    setBusy(true);
+    try {
+      setTelegramTest(await testTelegramConnection(settings));
+    } catch (error) {
+      setTelegramTest({ ok: false, message: error instanceof Error ? error.message : "فشل اختبار Telegram." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runGmailTest = async () => {
+    setBusy(true);
+    try {
+      setGmailTest(await testGmailConnection(settings));
+    } catch (error) {
+      setGmailTest({ ok: false, message: error instanceof Error ? error.message : "فشل اختبار Gmail." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runHardwareTest = async () => {
+    setBusy(true);
+    try {
+      setHardwareTest(await runNativeHardwareTest());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "فشل اختبار العتاد.";
+      setHardwareTest({ cameraOk: false, cameraDetail: message, microphoneOk: false, microphoneDetail: message });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const requestPermissions = async () => {
@@ -136,7 +182,7 @@ export default function AgentHomeScreen() {
             await clearAgentSecrets();
             setSettings((current) => ({ ...current, botToken: "" }));
             setStoredConfigReady(false);
-            await persistSettings({ ...settings, botToken: "" });
+            await persistSettings({ ...settings, botToken: "", gmailAppPassword: "" });
           })();
         },
       },
@@ -176,10 +222,10 @@ export default function AgentHomeScreen() {
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
           {section === "overview" && <Overview status={status} ready={hydrated} busy={busy} onStart={() => void runStart()} onStop={() => void runStop()} onOpenTelegram={() => setSection("telegram")} />}
-          {section === "telegram" && <TelegramSettings settings={settings} update={update} tokenVisible={tokenVisible} setTokenVisible={setTokenVisible} onSave={() => void save()} onForget={forgetSecrets} />}
+          {section === "telegram" && <TelegramSettings settings={settings} update={update} tokenVisible={tokenVisible} setTokenVisible={setTokenVisible} gmailPasswordVisible={gmailPasswordVisible} setGmailPasswordVisible={setGmailPasswordVisible} telegramTest={telegramTest} gmailTest={gmailTest} busy={busy} onSave={() => void save()} onTestTelegram={() => void runTelegramTest()} onTestGmail={() => void runGmailTest()} onForget={forgetSecrets} />}
           {section === "camera" && <CameraSettings settings={settings} update={update} onSave={() => void save()} />}
           {section === "detection" && <DetectionSettings settings={settings} update={update} onSave={() => void save()} />}
-          {section === "diagnostics" && <Diagnostics status={status} onRefresh={() => void refreshStatus()} />}
+          {section === "diagnostics" && <Diagnostics status={status} hardwareTest={hardwareTest} busy={busy} onRefresh={() => void refreshStatus()} onHardwareTest={() => void runHardwareTest()} />}
         </ScrollView>
       </View>
     </ScreenContainer>
@@ -211,14 +257,28 @@ function Overview({ status, ready, busy, onStart, onStop, onOpenTelegram }: { st
   </>;
 }
 
-function TelegramSettings({ settings, update, tokenVisible, setTokenVisible, onSave, onForget }: { settings: AgentSettings; update: <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => void; tokenVisible: boolean; setTokenVisible: (value: boolean) => void; onSave: () => void; onForget: () => void }) {
+function TelegramSettings({ settings, update, tokenVisible, setTokenVisible, gmailPasswordVisible, setGmailPasswordVisible, telegramTest, gmailTest, busy, onSave, onTestTelegram, onTestGmail, onForget }: { settings: AgentSettings; update: <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => void; tokenVisible: boolean; setTokenVisible: (value: boolean) => void; gmailPasswordVisible: boolean; setGmailPasswordVisible: (value: boolean) => void; telegramTest: ChannelTestResult | null; gmailTest: ChannelTestResult | null; busy: boolean; onSave: () => void; onTestTelegram: () => void; onTestGmail: () => void; onForget: () => void }) {
   return <View style={styles.sectionStack}>
-    <SectionHeader icon="send" title="إعدادات Telegram" text="تُرسل إلى طبقة Android الأصلية عند تشغيل العامل. لا يُرفع token إلى خادم التطبيق." />
+    <SectionHeader icon="send" title="إعدادات Telegram وGmail" text="تُحفظ الأسرار في تخزين Android المشفر على الهاتف. لا تُرسل إلى خادم التطبيق أو بيئة الواجهة." />
     <Field label="Bot Token" value={settings.botToken} secure={!tokenVisible} placeholder="123456:ABC…" onChangeText={(value) => update("botToken", value)} trailing={<Pressable onPress={() => setTokenVisible(!tokenVisible)} style={({ pressed }) => [styles.trailingAction, pressed && styles.pressed]}><MaterialIcons name={tokenVisible ? "visibility-off" : "visibility"} size={19} color="#8BA4B4" /></Pressable>} />
     <Field label="Chat ID" value={settings.chatId} placeholder="مثال: 123456789 أو -100…" keyboardType="numbers-and-punctuation" onChangeText={(value) => update("chatId", value)} />
     <Field label="User IDs المصرح بها" value={settings.allowedUserIds} placeholder="افصل المعرفات بفاصلة، أو اتركه فارغًا" keyboardType="numbers-and-punctuation" onChangeText={(value) => update("allowedUserIds", value)} />
     <View style={styles.noteCard}><MaterialIcons name="security" size={20} color="#55E0B9" /><Text style={styles.noteText}>يقتصر العامل على Chat ID المحدد. إذا أدخلت User IDs، فلن ينفذ الأوامر إلا منهم. تدعم المجموعات ذات Chat ID السالب.</Text></View>
     <PrimaryButton label="حفظ الإعدادات" icon="save" onPress={onSave} />
+    <SecondaryButton label={busy ? "جارٍ الاختبار…" : "اختبار اتصال Telegram"} icon="cloud-done" disabled={busy} onPress={onTestTelegram} />
+    <TestResult result={telegramTest} />
+
+    <View style={styles.deliveryDivider} />
+    <Text style={styles.groupTitle}>نسخة احتياطية عبر Gmail</Text>
+    <ToggleRow label="تفعيل النسخ الاحتياطي" text="لا يحذف العامل الدليل تلقائيًا إلا بعد نجاح Telegram وGmail عند تفعيله." value={settings.gmailBackupEnabled} onChange={(value) => update("gmailBackupEnabled", value)} />
+    <Field label="خادم SMTP" value={settings.gmailHost} placeholder="smtp.gmail.com" onChangeText={(value) => update("gmailHost", value)} />
+    <Field label="منفذ SMTP" value={String(settings.gmailPort)} placeholder="587 أو 465" keyboardType="number-pad" onChangeText={(value) => update("gmailPort", Number.parseInt(value, 10) || 587)} />
+    <Field label="بريد Gmail المرسل" value={settings.gmailUsername} placeholder="name@gmail.com" keyboardType="email-address" onChangeText={(value) => update("gmailUsername", value)} />
+    <Field label="كلمة مرور التطبيق" value={settings.gmailAppPassword} secure={!gmailPasswordVisible} placeholder="كلمة تطبيق Gmail" onChangeText={(value) => update("gmailAppPassword", value)} trailing={<Pressable onPress={() => setGmailPasswordVisible(!gmailPasswordVisible)} style={({ pressed }) => [styles.trailingAction, pressed && styles.pressed]}><MaterialIcons name={gmailPasswordVisible ? "visibility-off" : "visibility"} size={19} color="#8BA4B4" /></Pressable>} />
+    <Field label="بريد المستلم" value={settings.gmailRecipient} placeholder="backup@example.com" keyboardType="email-address" onChangeText={(value) => update("gmailRecipient", value)} />
+    <View style={styles.noteCard}><MaterialIcons name="vpn-key" size={20} color="#FFC776" /><Text style={styles.noteText}>يحتاج Gmail عادةً إلى كلمة مرور تطبيق عند تفعيل المصادقة الثنائية. استخدم 587 لـ STARTTLS أو 465 لـ SSL، ثم اضغط الاختبار قبل تشغيل العامل.</Text></View>
+    <SecondaryButton label={busy ? "جارٍ الاختبار…" : "اختبار اتصال Gmail"} icon="alternate-email" disabled={busy || !settings.gmailBackupEnabled} onPress={onTestGmail} />
+    <TestResult result={gmailTest} />
     <SecondaryButton label="حذف Bot Token المحلي" icon="delete-outline" destructive onPress={onForget} />
   </View>;
 }
@@ -252,7 +312,7 @@ function DetectionSettings({ settings, update, onSave }: { settings: AgentSettin
   </View>;
 }
 
-function Diagnostics({ status, onRefresh }: { status: AgentStatus; onRefresh: () => void }) {
+function Diagnostics({ status, hardwareTest, busy, onRefresh, onHardwareTest }: { status: AgentStatus; hardwareTest: HardwareTestResult | null; busy: boolean; onRefresh: () => void; onHardwareTest: () => void }) {
   return <View style={styles.sectionStack}>
     <SectionHeader icon="fact-check" title="تشخيص التنفيذ" text="تعكس هذه البطاقة آخر حالة مسجلة من خدمة Android، ولا تضع نتائج افتراضية." />
     <DiagnosticRow label="المرحلة" value={status.phase} />
@@ -260,6 +320,11 @@ function Diagnostics({ status, onRefresh }: { status: AgentStatus; onRefresh: ()
     <DiagnosticRow label="آخر تحديث" value={status.updatedAt || "غير متاح"} />
     <DiagnosticRow label="آخر خطأ" value={status.lastError || "لا يوجد"} error={Boolean(status.lastError)} />
     <PrimaryButton label="تحديث الحالة" icon="refresh" onPress={onRefresh} />
+    <View style={styles.deliveryDivider} />
+    <Text style={styles.groupTitle}>فحص الكاميرا والميكروفون</Text>
+    <View style={styles.noteCard}><MaterialIcons name="perm-device-information" size={20} color="#8EC5FF" /><Text style={styles.noteText}>يفحص APK المخصص الكاميرا بالتقاط صورة اختبار تحذف فورًا، ويقرأ عينات PCM فعلية من الميكروفون. أوقف العامل أولًا لتجنب تعارض الكاميرا أو الميكروفون.</Text></View>
+    <SecondaryButton label={busy ? "جارٍ الفحص…" : "فحص الكاميرا والميكروفون"} icon="settings-input-component" disabled={busy || status.running} onPress={onHardwareTest} />
+    {hardwareTest ? <View style={styles.hardwareResult}><TestResult result={{ ok: hardwareTest.cameraOk, message: hardwareTest.cameraDetail }} /><TestResult result={{ ok: hardwareTest.microphoneOk, message: hardwareTest.microphoneDetail }} /></View> : null}
     <View style={styles.noteCard}><MaterialIcons name="battery-alert" size={20} color="#FFC776" /><Text style={styles.noteText}>يجب أن يبقى الإشعار المستمر ظاهرًا بعد التشغيل. إذا قيّد الهاتف التطبيق، أضف التطبيق إلى الاستثناء من تحسين البطارية من إعدادات النظام.</Text></View>
   </View>;
 }
@@ -272,7 +337,12 @@ function SectionHeader({ icon, title, text }: { icon: React.ComponentProps<typeo
   return <View style={styles.sectionHeader}><View style={styles.sectionIcon}><MaterialIcons name={icon} size={22} color="#8EC5FF" /></View><View style={styles.headerCopy}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionText}>{text}</Text></View></View>;
 }
 
-function Field({ label, value, placeholder, onChangeText, secure, keyboardType, trailing }: { label: string; value: string; placeholder: string; onChangeText: (value: string) => void; secure?: boolean; keyboardType?: "default" | "numbers-and-punctuation"; trailing?: React.ReactNode }) {
+function TestResult({ result }: { result: ChannelTestResult | null }) {
+  if (!result) return null;
+  return <View style={[styles.testResult, result.ok ? styles.testSuccess : styles.testFailure]}><MaterialIcons name={result.ok ? "check-circle" : "error-outline"} size={19} color={result.ok ? "#55E0B9" : "#FFB4BD"} /><Text style={[styles.testText, !result.ok && styles.testErrorText]}>{result.message}</Text></View>;
+}
+
+function Field({ label, value, placeholder, onChangeText, secure, keyboardType, trailing }: { label: string; value: string; placeholder: string; onChangeText: (value: string) => void; secure?: boolean; keyboardType?: React.ComponentProps<typeof TextInput>["keyboardType"]; trailing?: React.ReactNode }) {
   return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><View style={styles.inputShell}><TextInput style={styles.input} value={value} placeholder={placeholder} placeholderTextColor="#5F788A" secureTextEntry={secure} autoCapitalize="none" autoCorrect={false} keyboardType={keyboardType} onChangeText={onChangeText} textAlign="left" /><View>{trailing}</View></View></View>;
 }
 
@@ -347,6 +417,13 @@ const styles = StyleSheet.create({
   textActionText: { color: "#B8E7FF", fontSize: 12, fontWeight: "800" },
   noteCard: { flexDirection: "row", gap: 10, padding: 13, borderRadius: 16, backgroundColor: "#0E283A", borderWidth: 1, borderColor: "#1B4763" },
   noteText: { flex: 1, color: "#BBD3E2", fontSize: 12, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
+  deliveryDivider: { height: 1, backgroundColor: "#214B64", marginVertical: 4 },
+  testResult: { flexDirection: "row", alignItems: "flex-start", gap: 9, padding: 12, borderRadius: 14, borderWidth: 1 },
+  testSuccess: { backgroundColor: "#0E312E", borderColor: "#1D6A5B" },
+  testFailure: { backgroundColor: "#3A2028", borderColor: "#824451" },
+  testText: { flex: 1, color: "#C7F6E8", fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
+  testErrorText: { color: "#FFD2D8" },
+  hardwareResult: { gap: 8 },
   sectionStack: { gap: 13 },
   sectionHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 2 },
   sectionIcon: { width: 42, height: 42, backgroundColor: "#102E43", borderRadius: 14, alignItems: "center", justifyContent: "center" },
