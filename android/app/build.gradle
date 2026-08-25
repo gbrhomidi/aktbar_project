@@ -134,6 +134,18 @@ android {
             def enablePngCrunchInRelease = findProperty('android.enablePngCrunchInReleaseBuilds') ?: 'true'
             crunchPngs enablePngCrunchInRelease.toBoolean()
         }
+        // A standalone installable variant for CI and device validation. Unlike
+        // debug, it embeds the Expo/Metro bundle and never waits for Metro.
+        // It uses the debug keystore for CI/device validation; Release signing remains separate.
+        standalone {
+            initWith release
+            matchingFallbacks = ['release']
+            signingConfig signingConfigs.debug
+            debuggable false
+            minifyEnabled false
+            shrinkResources false
+            crunchPngs true
+        }
     }
     packagingOptions {
         jniLibs {
