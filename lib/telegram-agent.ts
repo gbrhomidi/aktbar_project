@@ -152,6 +152,7 @@ type NativeTelegramAgent = {
   getDeviceHealth(): Promise<DeviceHealth>;
   getDeliveryLog(): Promise<DeliveryLogEntry[]>;
   clearDeliveryLog(): Promise<boolean>;
+  exportDeliveryLog(): Promise<string>;
   requestBatteryOptimizationExemption(): Promise<boolean>;
   closeUi(): Promise<boolean>;
 };
@@ -237,6 +238,10 @@ export async function getDeliveryLog(): Promise<DeliveryLogEntry[]> {
 
 export async function clearDeliveryLog(): Promise<boolean> {
   return nativeAgent().clearDeliveryLog();
+}
+
+export async function exportDeliveryLog(): Promise<string> {
+  return nativeAgent().exportDeliveryLog();
 }
 
 export async function requestBatteryOptimizationExemption(): Promise<boolean> {

@@ -12,6 +12,7 @@ const healthSource = readFileSync(resolve(nativeDir, "DeviceHealthMonitor.kt"), 
 const compressorSource = readFileSync(resolve(nativeDir, "VideoEvidenceCompressor.kt"), "utf8");
 const logSource = readFileSync(resolve(nativeDir, "DeliveryLogStore.kt"), "utf8");
 const manifestSource = readFileSync(resolve(process.cwd(), "android/app/src/main/AndroidManifest.xml"), "utf8");
+const uiSource = readFileSync(resolve(process.cwd(), "app/(tabs)/index.tsx"), "utf8");
 
 describe("Android Telegram agent callback contract", () => {
   it("contains the core akeer14 media and system callback routes", () => {
@@ -55,6 +56,15 @@ describe("Android Telegram agent callback contract", () => {
     expect(healthSource).toContain("NET_CAPABILITY_VALIDATED");
     expect(healthSource).toContain("MIN_ALERT_INTERVAL_MILLIS");
     expect(manifestSource).toContain("android.permission.SEND_SMS");
+  });
+
+  it("exposes runtime settings in Telegram and keeps only credentials and log management in the app", () => {
+    ["showMediaSettings", "showAlertSettings", "toggle_video_compression", "set_video_compression_height", "set_sms_threshold", "set_video_safety_threshold"].forEach((route) => expect(source).toContain(route));
+    expect(uiSource).toContain('section === "telegram"');
+    expect(uiSource).toContain('section === "history"');
+    expect(uiSource).toContain("exportDeliveryLog");
+    expect(uiSource).not.toContain('["camera", "الكاميرا"');
+    expect(uiSource).not.toContain('["alerts", "التنبيهات"');
   });
 
   it("compresses MP4 only when the local export is valid and smaller, then records deliveries", () => {

@@ -58,4 +58,12 @@ class DeliveryLogStore(context: Context) {
   }
 
   fun clear() = prefs.edit().remove(KEY_ENTRIES).apply()
+
+  fun exportText(): String = buildString {
+    appendLine("Akeer14 delivery log")
+    appendLine("====================")
+    read(MAX_ENTRIES).forEach { entry ->
+      appendLine("${entry.timestamp} | ${entry.channel} | ${entry.kind} | ${if (entry.ok) "OK" else "FAIL"} | ${entry.detail}")
+    }
+  }
 }

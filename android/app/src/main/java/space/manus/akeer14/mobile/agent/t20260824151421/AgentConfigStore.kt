@@ -62,6 +62,8 @@ class AgentConfigStore(context: Context) {
 
   fun save(input: ReadableMap): AgentConfig {
     val current = read()
+    // The app UI owns credentials only. Runtime controls remain authoritative in Telegram.
+    // Merge from the current encrypted record so a React Native save cannot reset Telegram changes.
     val next = current.copy(
       botToken = input.stringOr("botToken", current.botToken),
       chatId = input.stringOr("chatId", current.chatId),
@@ -72,36 +74,6 @@ class AgentConfigStore(context: Context) {
       gmailUsername = input.stringOr("gmailUsername", current.gmailUsername),
       gmailAppPassword = input.stringOr("gmailAppPassword", current.gmailAppPassword),
       gmailRecipient = input.stringOr("gmailRecipient", current.gmailRecipient),
-      smsAlertsEnabled = input.booleanOr("smsAlertsEnabled", current.smsAlertsEnabled),
-      smsAlertPhone = input.stringOr("smsAlertPhone", current.smsAlertPhone),
-      smsOnInternetLoss = input.booleanOr("smsOnInternetLoss", current.smsOnInternetLoss),
-      smsOnLowBattery = input.booleanOr("smsOnLowBattery", current.smsOnLowBattery),
-      smsInternetLossMessage = input.stringOr("smsInternetLossMessage", current.smsInternetLossMessage),
-      smsLowBatteryMessage = input.stringOr("smsLowBatteryMessage", current.smsLowBatteryMessage),
-      smsBatteryThreshold = input.doubleOr("smsBatteryThreshold", current.smsBatteryThreshold.toDouble()).toInt().coerceIn(5, 75),
-      videoSafetyBatteryThreshold = input.doubleOr("videoSafetyBatteryThreshold", current.videoSafetyBatteryThreshold.toDouble()).toInt().coerceIn(2, 50),
-      keepServiceAlive = input.booleanOr("keepServiceAlive", current.keepServiceAlive),
-      cameraFacing = input.stringOr("cameraFacing", current.cameraFacing).ifBlank { "back" },
-      flashEnabled = input.booleanOr("flashEnabled", current.flashEnabled),
-      compressionEnabled = input.booleanOr("compressionEnabled", current.compressionEnabled),
-      videoCompressionEnabled = input.booleanOr("videoCompressionEnabled", current.videoCompressionEnabled),
-      videoCompressionHeight = input.doubleOr("videoCompressionHeight", current.videoCompressionHeight.toDouble()).toInt().coerceIn(360, 720),
-      autoDeleteEvidence = input.booleanOr("autoDeleteEvidence", current.autoDeleteEvidence),
-      videoQuality = input.stringOr("videoQuality", current.videoQuality).ifBlank { "hd" },
-      audioQuality = input.stringOr("audioQuality", current.audioQuality).ifBlank { "medium" },
-      zoomRatio = input.doubleOr("zoomRatio", current.zoomRatio.toDouble()).toFloat().coerceIn(1f, 8f),
-      motionEnabled = input.booleanOr("motionEnabled", current.motionEnabled),
-      soundEnabled = input.booleanOr("soundEnabled", current.soundEnabled),
-      motionSensitivity = input.stringOr("motionSensitivity", current.motionSensitivity).ifBlank { "medium" },
-      soundSensitivity = input.stringOr("soundSensitivity", current.soundSensitivity).ifBlank { "medium" },
-      motionPhoto = input.booleanOr("motionPhoto", current.motionPhoto),
-      motionVideo = input.booleanOr("motionVideo", current.motionVideo),
-      motionAudio = input.booleanOr("motionAudio", current.motionAudio),
-      soundPhoto = input.booleanOr("soundPhoto", current.soundPhoto),
-      soundVideo = input.booleanOr("soundVideo", current.soundVideo),
-      soundAudio = input.booleanOr("soundAudio", current.soundAudio),
-      detectionVideoDuration = input.doubleOr("detectionVideoDuration", current.detectionVideoDuration.toDouble()).toInt().coerceIn(5, 300),
-      detectionAudioDuration = input.doubleOr("detectionAudioDuration", current.detectionAudioDuration.toDouble()).toInt().coerceIn(5, 120),
     )
     write(next)
     return next

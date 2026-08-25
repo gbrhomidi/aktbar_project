@@ -4,7 +4,9 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.content.FileProvider
 import androidx.lifecycle.LifecycleOwner
+import java.io.File
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -150,6 +152,24 @@ class TelegramAgentModule(private val appContext: ReactApplicationContext) : Rea
   fun clearDeliveryLog(promise: Promise) {
     DeliveryLogStore(appContext).clear()
     promise.resolve(true)
+  }
+
+  @ReactMethod
+  fun exportDeliveryLog(promise: Promise) {
+    try {
+      val file = File(appContext.cacheDir, "akeer14-delivery-log-${System.currentTimeMillis()}.txt")
+      file.writeText(DeliveryLogStore(appContext).exportText(), Charsets.UTF_8)
+      val uri = FileProvider.getUriForFile(appContext, "${appContext.packageName}.akeer14logs", file)
+      val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+      }
+      appContext.startActivity(Intent.createChooser(intent, "مشاركة سجل الإرسال").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+      promise.resolve(file.name)
+    } catch (error: Exception) {
+      promise.reject("DELIVERY_LOG_EXPORT_FAILED", error.message, error)
+    }
   }
 
   @ReactMethod

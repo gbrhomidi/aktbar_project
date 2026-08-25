@@ -271,6 +271,8 @@ class TelegramAgentService : LifecycleService() {
       data == "live_120" -> startLive(chatId, 120)
       data == "live_stop" -> stopLive(chatId)
       data == "show_advanced_settings" -> showAdvanced(chatId)
+      data == "show_media_settings" -> showMediaSettings(chatId)
+      data == "show_alert_settings" -> showAlertSettings(chatId)
       data == "back_to_advanced_main" || data == "refresh_system_status" -> showMainMenu(chatId)
       data == "system_report" -> showSystemReport(chatId)
       data == "emergency_panel" -> showEmergency(chatId)
@@ -285,6 +287,15 @@ class TelegramAgentService : LifecycleService() {
       data == "toggle_camera" -> { configureCapture(updateConfig { it.copy(cameraFacing = if (it.cameraFacing == "back") "front" else "back", flashEnabled = if (it.cameraFacing == "back") false else it.flashEnabled) }); showAdvanced(chatId) }
       data == "toggle_flash_setting" -> { configureCapture(updateConfig { it.copy(flashEnabled = it.cameraFacing == "back" && !it.flashEnabled) }); showAdvanced(chatId) }
       data == "toggle_compression" -> { updateConfig { it.copy(compressionEnabled = !it.compressionEnabled) }; showAdvanced(chatId) }
+      data == "toggle_video_compression" -> { updateConfig { it.copy(videoCompressionEnabled = !it.videoCompressionEnabled) }; showMediaSettings(chatId) }
+      data == "set_video_compression_height" -> showChoice(chatId, "🎞️ دقة ضغط الفيديو", listOf("compression_360" to "360p", "compression_480" to "480p", "compression_720" to "720p"))
+      data.startsWith("compression_") -> { updateConfig { it.copy(videoCompressionHeight = data.removePrefix("compression_").toIntOrNull()?.coerceIn(360, 720) ?: 480) }; showMediaSettings(chatId) }
+      data == "toggle_sms_internet" -> { updateConfig { it.copy(smsOnInternetLoss = !it.smsOnInternetLoss) }; showAlertSettings(chatId) }
+      data == "toggle_sms_battery" -> { updateConfig { it.copy(smsOnLowBattery = !it.smsOnLowBattery) }; showAlertSettings(chatId) }
+      data == "set_sms_threshold" -> showChoice(chatId, "🔋 عتبة SMS", listOf("sms_threshold_5" to "5%", "sms_threshold_10" to "10%", "sms_threshold_15" to "15%", "sms_threshold_20" to "20%", "sms_threshold_30" to "30%"))
+      data.startsWith("sms_threshold_") -> { updateConfig { it.copy(smsBatteryThreshold = data.removePrefix("sms_threshold_").toIntOrNull()?.coerceIn(1, 99) ?: 15) }; showAlertSettings(chatId) }
+      data == "set_video_safety_threshold" -> showChoice(chatId, "🛡️ عتبة حفظ الفيديو", listOf("video_safe_2" to "2%", "video_safe_5" to "5%", "video_safe_10" to "10%", "video_safe_15" to "15%"))
+      data.startsWith("video_safe_") -> { updateConfig { it.copy(videoSafetyBatteryThreshold = data.removePrefix("video_safe_").toIntOrNull()?.coerceIn(1, 99) ?: 5) }; showAlertSettings(chatId) }
       data == "toggle_auto_delete" -> { updateConfig { it.copy(autoDeleteEvidence = !it.autoDeleteEvidence) }; showAdvanced(chatId) }
       data == "set_video_quality" -> showChoice(chatId, "🎥 جودة الفيديو", listOf("quality_low" to "منخفضة SD", "quality_medium" to "متوسطة HD", "quality_high" to "عالية FHD"))
       data == "set_audio_quality" -> showChoice(chatId, "🔊 جودة الصوت", listOf("audio_low" to "منخفضة", "audio_medium" to "متوسطة", "audio_high" to "عالية"))
@@ -477,6 +488,25 @@ class TelegramAgentService : LifecycleService() {
     serviceScope.launch { showDetectionActions(chatId) }
   }
 
+  private suspend fun showMediaSettings(chatId: String) {
+    val c = configStore.read()
+    bot?.sendMessage(chatId, "<b>🎥 إعدادات الوسائط</b>\nضغط الفيديو: ${if (c.videoCompressionEnabled) "🟢 مفعل" else "🔴 معطل"}\nالدقة المفضلة: ${c.videoCompressionHeight}p\nتُطبّق هذه القيم قبل رفع الفيديو، ولا يُحذف الأصل إذا فشل الضغط أو التسليم.", keyboard(
+      row("${if (c.videoCompressionEnabled) "⏸️ تعطيل" else "▶️ تفعيل"} ضغط الفيديو" to "toggle_video_compression"),
+      row("🎚️ اختيار الدقة" to "set_video_compression_height"),
+      row("← الإعدادات المتقدمة" to "show_advanced_settings"),
+    ))
+  }
+
+  private suspend fun showAlertSettings(chatId: String) {
+    val c = configStore.read()
+    bot?.sendMessage(chatId, "<b>🔔 إعدادات التنبيهات</b>\nSMS الإنترنت: ${if (c.smsOnInternetLoss) "🟢" else "🔴"}\nSMS البطارية: ${if (c.smsOnLowBattery) "🟢" else "🔴"}\nعتبة SMS: ${c.smsBatteryThreshold}%\nعتبة حفظ الفيديو: ${c.videoSafetyBatteryThreshold}%\nلتعديل رقم الهاتف أو نص الرسالة، استخدم شاشة Telegram Token/Gmail في التطبيق أو أوامر الإعداد الآمنة.", keyboard(
+      row("🌐 تبديل SMS الإنترنت" to "toggle_sms_internet"),
+      row("🔋 تبديل SMS البطارية" to "toggle_sms_battery"),
+      row("🎚️ عتبة SMS" to "set_sms_threshold", "🛡️ عتبة حفظ الفيديو" to "set_video_safety_threshold"),
+      row("← الإعدادات المتقدمة" to "show_advanced_settings"),
+    ))
+  }
+
   private suspend fun showMainMenu(chatId: String) {
     val config = configStore.read()
     val state = runtime.get()
@@ -495,6 +525,7 @@ class TelegramAgentService : LifecycleService() {
     """.trimIndent()
     bot?.sendMessage(chatId, text, keyboard(
       row("⚙️ الإعدادات المتقدمة" to "show_advanced_settings"),
+      row("🎥 إعدادات الوسائط" to "show_media_settings", "🔔 إعدادات التنبيهات" to "show_alert_settings"),
       row("🔄 تحديث المعلومات" to "refresh_system_status"),
       row("━━━━━━━ 🎥 الوسائط ━━━━━━━" to "DO_NOTHING"),
       row("📸 التقاط صورة" to "capture_photo", "🎤 تسجيل صوت" to "record_audio"),

@@ -29,6 +29,7 @@ import {
   HardwareTestResult,
   clearAgentSecrets,
   clearDeliveryLog,
+  exportDeliveryLog,
   defaultSettings,
   getAgentStatus,
   getDeliveryLog,
@@ -43,7 +44,6 @@ import {
   startAgent,
   stopAgent,
   testGmailConnection,
-  testSmsAlert,
   testTelegramConnection,
 } from "@/lib/telegram-agent";
 import { isTelegramSettingsReady } from "@/lib/agent-protocol";
@@ -73,7 +73,6 @@ export default function AgentHomeScreen() {
   const [telegramTest, setTelegramTest] = useState<ChannelTestResult | null>(null);
   const [gmailTest, setGmailTest] = useState<ChannelTestResult | null>(null);
   const [hardwareTest, setHardwareTest] = useState<HardwareTestResult | null>(null);
-  const [smsTest, setSmsTest] = useState<ChannelTestResult | null>(null);
   const [deviceHealth, setDeviceHealth] = useState<DeviceHealth | null>(null);
   const [deliveryLog, setDeliveryLog] = useState<DeliveryLogEntry[]>([]);
   const [connectionCheck, setConnectionCheck] = useState<"telegram" | "gmail" | null>(null);
@@ -170,30 +169,6 @@ export default function AgentHomeScreen() {
     }
   };
 
-  const runSmsTest = async () => {
-    setBusy(true);
-    try {
-      if (Platform.OS === "android") {
-        const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.SEND_SMS, {
-          title: "إذن رسائل SMS",
-          message: "يحتاج العامل هذا الإذن لإرسال تنبيهك المختار عند غياب الإنترنت أو انخفاض البطارية.",
-          buttonPositive: "سماح",
-          buttonNegative: "ليس الآن",
-        });
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          setSmsTest({ ok: false, message: "لم يُمنح إذن SEND_SMS؛ لم تُرسل رسالة اختبار." });
-          return;
-        }
-      }
-      setSmsTest(await testSmsAlert(settings));
-      await refreshDeviceHealth();
-    } catch (error) {
-      setSmsTest({ ok: false, message: error instanceof Error ? error.message : "فشل اختبار SMS." });
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const requestBatteryExemption = async () => {
     try {
       await requestBatteryOptimizationExemption();
@@ -215,6 +190,15 @@ export default function AgentHomeScreen() {
       { text: "إلغاء", style: "cancel" },
       { text: "مسح السجل", style: "destructive", onPress: () => { void (async () => { await clearDeliveryLog(); await refreshDeliveryHistory(); })(); } },
     ]);
+  };
+
+  const exportHistory = async () => {
+    try {
+      const fileName = await exportDeliveryLog();
+      Alert.alert("تم تجهيز السجل", `تم إنشاء ${fileName} وفتح خيارات المشاركة.`);
+    } catch (error) {
+      Alert.alert("تعذر تصدير السجل", error instanceof Error ? error.message : "تصدير السجل متاح داخل APK Android مخصص.");
+    }
   };
 
   const requestPermissions = async () => {
@@ -312,9 +296,6 @@ export default function AgentHomeScreen() {
           {([
             ["overview", "الحالة", "monitor-heart"],
             ["telegram", "Telegram", "send"],
-            ["camera", "الكاميرا", "photo-camera"],
-            ["detection", "الكشف", "sensors"],
-            ["alerts", "التنبيهات", "sms"],
             ["history", "السجل", "history"],
             ["diagnostics", "التشخيص", "fact-check"],
             ["terms", "الشروط", "gavel"],
@@ -329,10 +310,7 @@ export default function AgentHomeScreen() {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
           {section === "overview" && <Overview status={status} health={deviceHealth} ready={hydrated} busy={busy} onStart={() => void runStart()} onStop={() => void runStop()} onOpenTelegram={() => setSection("telegram")} />}
           {section === "telegram" && <TelegramSettings settings={settings} update={update} tokenVisible={tokenVisible} setTokenVisible={setTokenVisible} gmailPasswordVisible={gmailPasswordVisible} setGmailPasswordVisible={setGmailPasswordVisible} telegramTest={telegramTest} gmailTest={gmailTest} activeCheck={connectionCheck} progressText={connectionProgress} busy={busy} onSave={() => void save()} onTestTelegram={() => void runTelegramTest()} onTestGmail={() => void runGmailTest()} onForget={forgetSecrets} />}
-          {section === "camera" && <CameraSettings settings={settings} update={update} onSave={() => void save()} />}
-          {section === "detection" && <DetectionSettings settings={settings} update={update} onSave={() => void save()} />}
-          {section === "alerts" && <AlertSettings settings={settings} update={update} smsTest={smsTest} busy={busy} onSave={() => void save()} onTestSms={() => void runSmsTest()} />}
-          {section === "history" && <DeliveryHistory entries={deliveryLog} busy={busy} onRefresh={() => void refreshDeliveryHistory()} onClear={clearHistory} />}
+          {section === "history" && <DeliveryHistory entries={deliveryLog} busy={busy} onRefresh={() => void refreshDeliveryHistory()} onClear={clearHistory} onExport={() => void exportHistory()} />}
           {section === "diagnostics" && <Diagnostics status={status} health={deviceHealth} hardwareTest={hardwareTest} busy={busy} onRefresh={() => { void refreshStatus(); void refreshDeviceHealth(); }} onHardwareTest={() => void runHardwareTest()} onRequestBatteryExemption={() => void requestBatteryExemption()} />}
           {section === "terms" && <TermsAndConditions />}
         </ScrollView>
@@ -466,12 +444,13 @@ function Diagnostics({ status, health, hardwareTest, busy, onRefresh, onHardware
   </View>;
 }
 
-function DeliveryHistory({ entries, busy, onRefresh, onClear }: { entries: DeliveryLogEntry[]; busy: boolean; onRefresh: () => void; onClear: () => void }) {
+function DeliveryHistory({ entries, busy, onRefresh, onClear, onExport }: { entries: DeliveryLogEntry[]; busy: boolean; onRefresh: () => void; onClear: () => void; onExport: () => void }) {
   return <View style={styles.sectionStack}>
     <SectionHeader icon="history" title="سجل الإرسال والتنبيهات" text="يسجل الهاتف محليًا نتائج محاولات SMS ورسائل وملفات Telegram ونسخ Gmail، مع التاريخ وسبب الفشل عند ظهوره." />
     <View style={styles.actionRow}>
       <PrimaryButton label="تحديث السجل" icon="refresh" disabled={busy} onPress={onRefresh} />
       <SecondaryButton label="مسح" icon="delete-outline" disabled={busy || entries.length === 0} destructive onPress={onClear} />
+      <SecondaryButton label="تصدير TXT" icon="share" disabled={busy || entries.length === 0} onPress={onExport} />
     </View>
     {entries.length === 0 ? <View style={styles.emptyHistory}><MaterialIcons name="inbox" size={28} color="#75D5FF" /><Text style={styles.emptyHistoryTitle}>لا توجد عمليات مسجلة بعد</Text><Text style={styles.emptyHistoryText}>سيظهر هنا نجاح أو فشل إرسال التنبيهات والأدلة من APK Android المخصص.</Text></View> : entries.map((entry) => <View key={entry.id} style={[styles.historyCard, entry.ok ? styles.historySuccess : styles.historyFailure]}><View style={styles.historyIcon}><MaterialIcons name={entry.ok ? "check" : "priority-high"} size={18} color={entry.ok ? "#39D7A7" : "#FF9EAA"} /></View><View style={styles.historyCopy}><View style={styles.historyTop}><Text style={styles.historyChannel}>{entry.channel} · {entry.kind}</Text><Text style={styles.historyTime}>{entry.timestamp}</Text></View><Text style={styles.historyDetail}>{entry.detail}</Text></View></View>)}
   </View>;
