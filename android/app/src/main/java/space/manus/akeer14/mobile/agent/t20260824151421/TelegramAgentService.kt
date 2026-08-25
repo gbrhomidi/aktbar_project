@@ -44,6 +44,7 @@ class TelegramAgentService : LifecycleService() {
   private lateinit var configStore: AgentConfigStore
   private lateinit var runtime: AgentRuntimeStore
   private lateinit var camera: AgentCameraController
+  private lateinit var deliveryLog: DeliveryLogStore
   private val audio by lazy { AgentAudioRecorder(this) }
   private val soundMonitor = AgentSoundMonitor()
   private var bot: TelegramBotClient? = null
@@ -67,6 +68,7 @@ class TelegramAgentService : LifecycleService() {
     super.onCreate()
     configStore = AgentConfigStore(this)
     runtime = AgentRuntimeStore(this)
+    deliveryLog = DeliveryLogStore(this)
     camera = AgentCameraController(this, this) { serviceScope.launch { runDetection("motion") } }
     commandWorker = serviceScope.launch {
       for (task in commandQueue) processEvidence(task)
@@ -110,7 +112,9 @@ class TelegramAgentService : LifecycleService() {
     startForegroundCompat("جارٍ تهيئة عامل Telegram…")
     pollJob = serviceScope.launch {
       try {
-        bot = TelegramBotClient(config.botToken)
+        bot = TelegramBotClient(config.botToken) { channel, kind, ok, detail ->
+          deliveryLog.append(channel, kind, ok, detail)
+        }
         val client = requireNotNull(bot)
         val webhook = client.deleteWebhook()
         if (!webhook.ok) error("تعذر إزالة webhook القديم: ${webhook.description}")
@@ -155,7 +159,7 @@ class TelegramAgentService : LifecycleService() {
           runtime.setRunning("تنبيه اتصال", "انقطع الإنترنت. $detail")
           updateNotification("لا يوجد اتصال بالإنترنت")
         }
-        if (health.batteryPercent in 0..15) alertLowBattery(null, health)
+        if (health.batteryPercent in 0..config.smsBatteryThreshold) alertLowBattery(null, health)
         wasInternetReachable = health.internetReachable
         delay(30_000L)
       }
@@ -167,10 +171,11 @@ class TelegramAgentService : LifecycleService() {
     val watcher = launch {
       while (isActive) {
         val health = DeviceHealthMonitor.snapshot(this@TelegramAgentService)
+        val config = configStore.read()
         alertLowBattery(chatId, health)
-        if (!criticalStopRequested && health.batteryPercent in 0..4) {
+        if (!criticalStopRequested && health.batteryPercent in 0..config.videoSafetyBatteryThreshold) {
           criticalStopRequested = true
-          runtime.setRunning("حفظ فيديو آمن", "البطارية ${health.batteryPercent}%: يُطلب إيقاف التسجيل الآن لحفظ ملف الفيديو النهائي.")
+          runtime.setRunning("حفظ فيديو آمن", "البطارية ${health.batteryPercent}%: يُطلب إيقاف التسجيل عند عتبة ${config.videoSafetyBatteryThreshold}% لحفظ ملف الفيديو النهائي.")
           updateNotification("حفظ فيديو آمن بسبب بطارية ${health.batteryPercent}%")
           camera.stopVideoRecording()
           break
@@ -186,8 +191,8 @@ class TelegramAgentService : LifecycleService() {
   }
 
   private suspend fun alertLowBattery(chatId: String?, health: DeviceHealth) {
-    if (health.batteryPercent !in 0..15) return
     val config = configStore.read()
+    if (health.batteryPercent !in 0..config.smsBatteryThreshold) return
     val smsDetail = if (config.smsOnLowBattery) {
       SmsAlertDispatcher(this).sendIfAllowed(
         config,
@@ -343,10 +348,19 @@ class TelegramAgentService : LifecycleService() {
         return
       }
       val config = configStore.read()
-      val evidence = EvidenceProcessor.prepare(rawFile, config.compressionEnabled)
+      val evidence = EvidenceProcessor.prepare(
+        context = this,
+        file = rawFile,
+        compressImages = config.compressionEnabled,
+        compressVideos = config.videoCompressionEnabled,
+        videoHeight = config.videoCompressionHeight,
+      )
+      runtime.setRunning("تجهيز الدليل", evidence.preparationDetail)
+      client.sendMessage(task.chatId, "📦 ${evidence.preparationDetail}")
       val telegram = client.sendEvidence(task.chatId, evidence.uploadFile, "✅ <b>نتيجة الأمر:</b> ${task.title}")
       if (!telegram.ok) error("فشل إرسال Telegram: ${telegram.description}")
       val gmail = if (config.gmailBackupEnabled) GmailEvidenceSender().sendEvidence(config, evidence.uploadFile, task.title) else GmailResult(true, "لم تُفعّل نسخة Gmail.")
+      if (config.gmailBackupEnabled) deliveryLog.append("Gmail", "دليل ${evidence.uploadFile.extension.lowercase()}", gmail.ok, gmail.description)
       if (!gmail.ok) error("فشل إرسال Gmail: ${gmail.description}")
       if (config.autoDeleteEvidence) evidence.cleanupFiles.distinct().forEach { it.delete() }
       val channels = if (config.gmailBackupEnabled) "Telegram وGmail" else "Telegram"

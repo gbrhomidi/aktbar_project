@@ -1,5 +1,6 @@
 package space.manus.akeer14.mobile.agent.t20260824151421
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import kotlinx.coroutines.Dispatchers
@@ -10,13 +11,21 @@ import java.io.File
 data class PreparedEvidence(
   val uploadFile: File,
   val cleanupFiles: List<File>,
+  val preparationDetail: String,
 )
 
 object EvidenceProcessor {
-  suspend fun prepare(file: File, compressImages: Boolean): PreparedEvidence = withContext(Dispatchers.Default) {
+  suspend fun prepare(context: Context, file: File, compressImages: Boolean, compressVideos: Boolean, videoHeight: Int): PreparedEvidence = withContext(Dispatchers.Default) {
     awaitStable(file)
+    if (compressVideos && file.extension.lowercase() == "mp4") {
+      return@withContext runCatching {
+        val compressed = VideoEvidenceCompressor.compress(context, file, videoHeight)
+        awaitStable(compressed.file)
+        PreparedEvidence(compressed.file, listOf(file, compressed.file).distinct(), compressed.description)
+      }.getOrElse { PreparedEvidence(file, listOf(file), "تعذر ضغط الفيديو؛ سيُرسل الأصل بعد التحقق: ${it.message ?: "خطأ غير معروف"}") }
+    }
     if (!compressImages || file.extension.lowercase() !in setOf("jpg", "jpeg", "png")) {
-      return@withContext PreparedEvidence(file, listOf(file))
+      return@withContext PreparedEvidence(file, listOf(file), "لم يُطبق ضغط على هذا النوع من الأدلة.")
     }
     val bitmap = BitmapFactory.decodeFile(file.absolutePath)
       ?: error("Cannot decode evidence image for compression.")
@@ -26,7 +35,7 @@ object EvidenceProcessor {
         check(bitmap.compress(Bitmap.CompressFormat.JPEG, 78, output)) { "Image compression failed." }
       }
       awaitStable(compressed)
-      PreparedEvidence(compressed, listOf(file, compressed))
+      PreparedEvidence(compressed, listOf(file, compressed), "ضُغطت الصورة قبل الإرسال.")
     } finally {
       bitmap.recycle()
     }

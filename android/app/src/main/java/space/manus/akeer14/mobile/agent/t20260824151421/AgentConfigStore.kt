@@ -21,10 +21,14 @@ data class AgentConfig(
   val smsOnLowBattery: Boolean = true,
   val smsInternetLossMessage: String = "Akeer14: تعذر الوصول إلى الإنترنت من الهاتف العامل. تحقق من الشبكة.",
   val smsLowBatteryMessage: String = "Akeer14: بطارية الهاتف العامل منخفضة ({battery}%). اشحن الجهاز فورًا.",
+  val smsBatteryThreshold: Int = 15,
+  val videoSafetyBatteryThreshold: Int = 5,
   val keepServiceAlive: Boolean = true,
   val cameraFacing: String = "back",
   val flashEnabled: Boolean = false,
   val compressionEnabled: Boolean = true,
+  val videoCompressionEnabled: Boolean = true,
+  val videoCompressionHeight: Int = 480,
   val autoDeleteEvidence: Boolean = true,
   val videoQuality: String = "hd",
   val audioQuality: String = "medium",
@@ -74,10 +78,14 @@ class AgentConfigStore(context: Context) {
       smsOnLowBattery = input.booleanOr("smsOnLowBattery", current.smsOnLowBattery),
       smsInternetLossMessage = input.stringOr("smsInternetLossMessage", current.smsInternetLossMessage),
       smsLowBatteryMessage = input.stringOr("smsLowBatteryMessage", current.smsLowBatteryMessage),
+      smsBatteryThreshold = input.doubleOr("smsBatteryThreshold", current.smsBatteryThreshold.toDouble()).toInt().coerceIn(5, 75),
+      videoSafetyBatteryThreshold = input.doubleOr("videoSafetyBatteryThreshold", current.videoSafetyBatteryThreshold.toDouble()).toInt().coerceIn(2, 50),
       keepServiceAlive = input.booleanOr("keepServiceAlive", current.keepServiceAlive),
       cameraFacing = input.stringOr("cameraFacing", current.cameraFacing).ifBlank { "back" },
       flashEnabled = input.booleanOr("flashEnabled", current.flashEnabled),
       compressionEnabled = input.booleanOr("compressionEnabled", current.compressionEnabled),
+      videoCompressionEnabled = input.booleanOr("videoCompressionEnabled", current.videoCompressionEnabled),
+      videoCompressionHeight = input.doubleOr("videoCompressionHeight", current.videoCompressionHeight.toDouble()).toInt().coerceIn(360, 720),
       autoDeleteEvidence = input.booleanOr("autoDeleteEvidence", current.autoDeleteEvidence),
       videoQuality = input.stringOr("videoQuality", current.videoQuality).ifBlank { "hd" },
       audioQuality = input.stringOr("audioQuality", current.audioQuality).ifBlank { "medium" },
@@ -115,10 +123,14 @@ class AgentConfigStore(context: Context) {
     smsOnLowBattery = prefs.getBoolean("smsOnLowBattery", true),
     smsInternetLossMessage = prefs.getString("smsInternetLossMessage", "Akeer14: تعذر الوصول إلى الإنترنت من الهاتف العامل. تحقق من الشبكة.") ?: "Akeer14: تعذر الوصول إلى الإنترنت من الهاتف العامل. تحقق من الشبكة.",
     smsLowBatteryMessage = prefs.getString("smsLowBatteryMessage", "Akeer14: بطارية الهاتف العامل منخفضة ({battery}%). اشحن الجهاز فورًا.") ?: "Akeer14: بطارية الهاتف العامل منخفضة ({battery}%). اشحن الجهاز فورًا.",
+    smsBatteryThreshold = prefs.getInt("smsBatteryThreshold", 15).coerceIn(5, 75),
+    videoSafetyBatteryThreshold = prefs.getInt("videoSafetyBatteryThreshold", 5).coerceIn(2, 50),
     keepServiceAlive = prefs.getBoolean("keepServiceAlive", true),
     cameraFacing = prefs.getString("cameraFacing", "back") ?: "back",
     flashEnabled = prefs.getBoolean("flashEnabled", false),
     compressionEnabled = prefs.getBoolean("compressionEnabled", true),
+    videoCompressionEnabled = prefs.getBoolean("videoCompressionEnabled", true),
+    videoCompressionHeight = prefs.getInt("videoCompressionHeight", 480).coerceIn(360, 720),
     autoDeleteEvidence = prefs.getBoolean("autoDeleteEvidence", true),
     videoQuality = prefs.getString("videoQuality", "hd") ?: "hd",
     audioQuality = prefs.getString("audioQuality", "medium") ?: "medium",
@@ -158,10 +170,14 @@ class AgentConfigStore(context: Context) {
       .putBoolean("smsOnLowBattery", config.smsOnLowBattery)
       .putString("smsInternetLossMessage", config.smsInternetLossMessage)
       .putString("smsLowBatteryMessage", config.smsLowBatteryMessage)
+      .putInt("smsBatteryThreshold", config.smsBatteryThreshold)
+      .putInt("videoSafetyBatteryThreshold", config.videoSafetyBatteryThreshold)
       .putBoolean("keepServiceAlive", config.keepServiceAlive)
       .putString("cameraFacing", config.cameraFacing)
       .putBoolean("flashEnabled", config.flashEnabled)
       .putBoolean("compressionEnabled", config.compressionEnabled)
+      .putBoolean("videoCompressionEnabled", config.videoCompressionEnabled)
+      .putInt("videoCompressionHeight", config.videoCompressionHeight)
       .putBoolean("autoDeleteEvidence", config.autoDeleteEvidence)
       .putString("videoQuality", config.videoQuality)
       .putString("audioQuality", config.audioQuality)

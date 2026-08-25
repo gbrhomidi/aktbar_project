@@ -62,20 +62,25 @@ class SmsAlertDispatcher(private val context: Context) {
   }
 
   fun sendIfAllowed(config: AgentConfig, type: String, message: String): String {
-    if (!config.smsReady) return "تنبيه SMS غير مفعّل أو رقم التنبيه غير صالح."
+    if (!config.smsReady) return "تنبيه SMS غير مفعّل أو رقم التنبيه غير صالح.".also { log(type, false, it) }
     if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
-      return "لم يُمنح إذن إرسال SMS؛ لم تُرسل الرسالة."
+      return "لم يُمنح إذن إرسال SMS؛ لم تُرسل الرسالة.".also { log(type, false, it) }
     }
     val preferences = context.getSharedPreferences("agent_sms_alerts", Context.MODE_PRIVATE)
     val key = "last_$type"
     val now = System.currentTimeMillis()
     val lastSent = preferences.getLong(key, 0L)
-    if (now - lastSent < MIN_ALERT_INTERVAL_MILLIS) return "تم كبح تكرار تنبيه SMS من النوع نفسه لمدة 30 دقيقة."
+    if (now - lastSent < MIN_ALERT_INTERVAL_MILLIS) return "تم كبح تكرار تنبيه SMS من النوع نفسه لمدة 30 دقيقة.".also { log(type, false, it) }
     return runCatching {
       @Suppress("DEPRECATION")
       SmsManager.getDefault().sendTextMessage(config.smsAlertPhone, null, message, null, null)
       preferences.edit().putLong(key, now).apply()
       "تمت محاولة إرسال تنبيه SMS إلى الرقم المهيأ."
-    }.getOrElse { "تعذر طلب إرسال SMS: ${it.message ?: "خطأ غير معروف"}" }
+    }.fold(
+      onSuccess = { it.also { message -> log(type, true, message) } },
+      onFailure = { "تعذر طلب إرسال SMS: ${it.message ?: "خطأ غير معروف"}".also { message -> log(type, false, message) } },
+    )
   }
+
+  private fun log(type: String, ok: Boolean, detail: String) = DeliveryLogStore(context).append("SMS", type, ok, detail)
 }

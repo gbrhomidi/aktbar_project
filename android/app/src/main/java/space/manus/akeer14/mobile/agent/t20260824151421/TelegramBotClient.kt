@@ -13,7 +13,10 @@ import java.util.UUID
 
 data class TelegramResult(val ok: Boolean, val description: String = "", val result: Any? = null)
 
-class TelegramBotClient(private val token: String) {
+class TelegramBotClient(
+  private val token: String,
+  private val onDelivery: ((channel: String, kind: String, ok: Boolean, detail: String) -> Unit)? = null,
+) {
   private val baseUrl = "https://api.telegram.org/bot$token/"
 
   suspend fun getMe(): TelegramResult = call("getMe", emptyMap())
@@ -30,7 +33,7 @@ class TelegramBotClient(private val token: String) {
   suspend fun sendMessage(chatId: String, html: String, keyboard: JSONArray? = null): TelegramResult {
     val fields = mutableMapOf("chat_id" to chatId, "text" to html, "parse_mode" to "HTML")
     if (keyboard != null) fields["reply_markup"] = JSONObject().put("inline_keyboard", keyboard).toString()
-    return call("sendMessage", fields)
+    return call("sendMessage", fields).also { onDelivery?.invoke("Telegram", "رسالة", it.ok, it.description.ifBlank { if (it.ok) "تم إرسال إشعار Telegram." else "فشل إرسال إشعار Telegram." }) }
   }
 
   suspend fun sendEvidence(chatId: String, file: File, caption: String): TelegramResult {
@@ -47,7 +50,7 @@ class TelegramBotClient(private val token: String) {
       "sendAudio" -> "audio"
       else -> "document"
     }
-    return multipart(endpoint, mapOf("chat_id" to chatId, "caption" to caption, "parse_mode" to "HTML"), partName, file)
+    return multipart(endpoint, mapOf("chat_id" to chatId, "caption" to caption, "parse_mode" to "HTML"), partName, file).also { onDelivery?.invoke("Telegram", "دليل ${file.extension.lowercase()}", it.ok, it.description.ifBlank { if (it.ok) "تم رفع دليل إلى Telegram." else "فشل رفع الدليل إلى Telegram." }) }
   }
 
   private suspend fun call(method: String, fields: Map<String, String>): TelegramResult = withContext(Dispatchers.IO) {

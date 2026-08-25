@@ -17,10 +17,14 @@ export type AgentSettings = {
   smsOnLowBattery: boolean;
   smsInternetLossMessage: string;
   smsLowBatteryMessage: string;
+  smsBatteryThreshold: number;
+  videoSafetyBatteryThreshold: number;
   keepServiceAlive: boolean;
   cameraFacing: "back" | "front";
   flashEnabled: boolean;
   compressionEnabled: boolean;
+  videoCompressionEnabled: boolean;
+  videoCompressionHeight: 360 | 480 | 720;
   autoDeleteEvidence: boolean;
   videoQuality: "sd" | "hd" | "fhd";
   audioQuality: "low" | "medium" | "high";
@@ -73,6 +77,15 @@ export type DeviceHealth = {
   smsPermissionGranted: boolean;
 };
 
+export type DeliveryLogEntry = {
+  id: string;
+  timestamp: string;
+  channel: string;
+  kind: string;
+  ok: boolean;
+  detail: string;
+};
+
 const SETTINGS_KEY = "akeer14.agent.settings.v1";
 
 export const defaultSettings: AgentSettings = {
@@ -91,10 +104,14 @@ export const defaultSettings: AgentSettings = {
   smsOnLowBattery: true,
   smsInternetLossMessage: "Akeer14: تعذر الوصول إلى الإنترنت من الهاتف العامل. تحقق من الشبكة.",
   smsLowBatteryMessage: "Akeer14: بطارية الهاتف العامل منخفضة ({battery}%). اشحن الجهاز فورًا.",
+  smsBatteryThreshold: 15,
+  videoSafetyBatteryThreshold: 5,
   keepServiceAlive: true,
   cameraFacing: "back",
   flashEnabled: false,
   compressionEnabled: true,
+  videoCompressionEnabled: true,
+  videoCompressionHeight: 480,
   autoDeleteEvidence: true,
   videoQuality: "hd",
   audioQuality: "medium",
@@ -133,6 +150,8 @@ type NativeTelegramAgent = {
   testSms(settings: AgentSettings): Promise<ChannelTestResult>;
   runHardwareTest(): Promise<HardwareTestResult>;
   getDeviceHealth(): Promise<DeviceHealth>;
+  getDeliveryLog(): Promise<DeliveryLogEntry[]>;
+  clearDeliveryLog(): Promise<boolean>;
   requestBatteryOptimizationExemption(): Promise<boolean>;
   closeUi(): Promise<boolean>;
 };
@@ -209,6 +228,15 @@ export async function getNativeDeviceHealth(): Promise<DeviceHealth> {
     return { batteryPercent: -1, charging: false, internetReachable: false, batteryOptimizationEnabled: false, smsPermissionGranted: false };
   }
   return nativeAgent().getDeviceHealth();
+}
+
+export async function getDeliveryLog(): Promise<DeliveryLogEntry[]> {
+  if (Platform.OS === "web" || !NativeModules.TelegramAgent) return [];
+  return nativeAgent().getDeliveryLog();
+}
+
+export async function clearDeliveryLog(): Promise<boolean> {
+  return nativeAgent().clearDeliveryLog();
 }
 
 export async function requestBatteryOptimizationExemption(): Promise<boolean> {

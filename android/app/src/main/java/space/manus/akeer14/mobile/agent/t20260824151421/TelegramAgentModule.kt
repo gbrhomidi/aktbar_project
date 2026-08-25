@@ -131,6 +131,28 @@ class TelegramAgentModule(private val appContext: ReactApplicationContext) : Rea
   }
 
   @ReactMethod
+  fun getDeliveryLog(promise: Promise) {
+    val entries = Arguments.createArray()
+    DeliveryLogStore(appContext).read().forEach { entry ->
+      entries.pushMap(Arguments.createMap().apply {
+        putString("id", entry.id)
+        putString("timestamp", entry.timestamp)
+        putString("channel", entry.channel)
+        putString("kind", entry.kind)
+        putBoolean("ok", entry.ok)
+        putString("detail", entry.detail)
+      })
+    }
+    promise.resolve(entries)
+  }
+
+  @ReactMethod
+  fun clearDeliveryLog(promise: Promise) {
+    DeliveryLogStore(appContext).clear()
+    promise.resolve(true)
+  }
+
+  @ReactMethod
   fun requestBatteryOptimizationExemption(promise: Promise) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
       promise.resolve(false)

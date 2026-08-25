@@ -24,11 +24,14 @@ import {
   AgentSettings,
   AgentStatus,
   ChannelTestResult,
+  DeliveryLogEntry,
   DeviceHealth,
   HardwareTestResult,
   clearAgentSecrets,
+  clearDeliveryLog,
   defaultSettings,
   getAgentStatus,
+  getDeliveryLog,
   getNativeDeviceHealth,
   hasStoredAgentConfig,
   loadSettings,
@@ -56,7 +59,7 @@ const initialStatus: AgentStatus = {
   lastError: "",
 };
 
-type Section = "overview" | "telegram" | "camera" | "detection" | "alerts" | "diagnostics" | "terms";
+type Section = "overview" | "telegram" | "camera" | "detection" | "alerts" | "history" | "diagnostics" | "terms";
 
 export default function AgentHomeScreen() {
   const { colorScheme, setColorScheme } = useThemeContext();
@@ -72,6 +75,7 @@ export default function AgentHomeScreen() {
   const [hardwareTest, setHardwareTest] = useState<HardwareTestResult | null>(null);
   const [smsTest, setSmsTest] = useState<ChannelTestResult | null>(null);
   const [deviceHealth, setDeviceHealth] = useState<DeviceHealth | null>(null);
+  const [deliveryLog, setDeliveryLog] = useState<DeliveryLogEntry[]>([]);
   const [connectionCheck, setConnectionCheck] = useState<"telegram" | "gmail" | null>(null);
   const [connectionProgress, setConnectionProgress] = useState("");
 
@@ -93,14 +97,23 @@ export default function AgentHomeScreen() {
     }
   }, []);
 
+  const refreshDeliveryHistory = useCallback(async () => {
+    try {
+      setDeliveryLog(await getDeliveryLog());
+    } catch {
+      setDeliveryLog([]);
+    }
+  }, []);
+
   useEffect(() => {
     void (async () => {
       setSettings(await loadSettings());
       setStoredConfigReady(await hasStoredAgentConfig());
       await refreshStatus();
       await refreshDeviceHealth();
+      await refreshDeliveryHistory();
     })();
-  }, [refreshDeviceHealth, refreshStatus]);
+  }, [refreshDeliveryHistory, refreshDeviceHealth, refreshStatus]);
 
   const update = <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => {
     setSettings((current) => ({ ...current, [key]: value }));
@@ -197,6 +210,13 @@ export default function AgentHomeScreen() {
     ]);
   };
 
+  const clearHistory = () => {
+    Alert.alert("مسح سجل الإرسال", "سيُحذف السجل المحلي فقط، ولن تتأثر الأدلة أو إعدادات القنوات.", [
+      { text: "إلغاء", style: "cancel" },
+      { text: "مسح السجل", style: "destructive", onPress: () => { void (async () => { await clearDeliveryLog(); await refreshDeliveryHistory(); })(); } },
+    ]);
+  };
+
   const requestPermissions = async () => {
     const [camera, microphone] = await Promise.all([
       Camera.requestCameraPermissionsAsync(),
@@ -282,7 +302,7 @@ export default function AgentHomeScreen() {
             <Pressable accessibilityRole="button" accessibilityLabel="إرسال التطبيق إلى الخلفية" onPress={closeUi} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
               <MaterialIcons name="close" size={22} color="#FFCDD3" />
             </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="تحديث الحالة" onPress={() => { void refreshStatus(); void refreshDeviceHealth(); }} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="تحديث الحالة" onPress={() => { void refreshStatus(); void refreshDeviceHealth(); void refreshDeliveryHistory(); }} style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}>
               <MaterialIcons name="refresh" size={22} color="#DCEFFA" />
             </Pressable>
           </View>
@@ -295,6 +315,7 @@ export default function AgentHomeScreen() {
             ["camera", "الكاميرا", "photo-camera"],
             ["detection", "الكشف", "sensors"],
             ["alerts", "التنبيهات", "sms"],
+            ["history", "السجل", "history"],
             ["diagnostics", "التشخيص", "fact-check"],
             ["terms", "الشروط", "gavel"],
           ] as const).map(([id, label, icon]) => (
@@ -311,6 +332,7 @@ export default function AgentHomeScreen() {
           {section === "camera" && <CameraSettings settings={settings} update={update} onSave={() => void save()} />}
           {section === "detection" && <DetectionSettings settings={settings} update={update} onSave={() => void save()} />}
           {section === "alerts" && <AlertSettings settings={settings} update={update} smsTest={smsTest} busy={busy} onSave={() => void save()} onTestSms={() => void runSmsTest()} />}
+          {section === "history" && <DeliveryHistory entries={deliveryLog} busy={busy} onRefresh={() => void refreshDeliveryHistory()} onClear={clearHistory} />}
           {section === "diagnostics" && <Diagnostics status={status} health={deviceHealth} hardwareTest={hardwareTest} busy={busy} onRefresh={() => { void refreshStatus(); void refreshDeviceHealth(); }} onHardwareTest={() => void runHardwareTest()} onRequestBatteryExemption={() => void requestBatteryExemption()} />}
           {section === "terms" && <TermsAndConditions />}
         </ScrollView>
@@ -379,9 +401,11 @@ function AlertSettings({ settings, update, smsTest, busy, onSave, onTestSms }: {
     <Field label="رقم تنبيه SMS" value={settings.smsAlertPhone} placeholder="مثال: +9665…" keyboardType="phone-pad" onChangeText={(value) => update("smsAlertPhone", value)} />
     <ToggleRow label="تنبيه عند انقطاع الإنترنت" text="يرسل تنبيهًا واحدًا عند انتقال العامل إلى حالة بلا إنترنت." value={settings.smsOnInternetLoss} onChange={(value) => update("smsOnInternetLoss", value)} />
     <Field label="نص SMS عند انقطاع الإنترنت" value={settings.smsInternetLossMessage} placeholder="اكتب رسالة التنبيه" multiline onChangeText={(value) => update("smsInternetLossMessage", value)} />
-    <ToggleRow label="تنبيه بطارية 15%" text="يراقب الفيديو الطويل والخدمة في الخلفية مع كبح تكرار الرسائل 30 دقيقة." value={settings.smsOnLowBattery} onChange={(value) => update("smsOnLowBattery", value)} />
+    <ToggleRow label={`تنبيه بطارية ${settings.smsBatteryThreshold}%`} text="يراقب الخدمة والفيديو الطويل مع كبح تكرار الرسائل 30 دقيقة." value={settings.smsOnLowBattery} onChange={(value) => update("smsOnLowBattery", value)} />
+    <ChoiceRow label="عتبة تنبيه SMS للبطارية" values={[5, 10, 15, 20, 30, 50] as const} selected={settings.smsBatteryThreshold} labelFor={(value) => `${value}%`} onSelect={(value) => update("smsBatteryThreshold", value)} />
+    <ChoiceRow label="عتبة حفظ الفيديو الآمن" values={[2, 5, 10, 15, 20] as const} selected={settings.videoSafetyBatteryThreshold} labelFor={(value) => `${value}%`} onSelect={(value) => update("videoSafetyBatteryThreshold", value)} />
     <Field label="نص SMS عند انخفاض البطارية" value={settings.smsLowBatteryMessage} placeholder="اكتب رسالة التنبيه" multiline onChangeText={(value) => update("smsLowBatteryMessage", value)} />
-    <View style={styles.noteCard}><MaterialIcons name="data-object" size={20} color="#B9A1FF" /><Text style={styles.noteText}>يمكنك كتابة المتغير «battery» بين قوسين معقوفين داخل رسالة البطارية ليضع العامل النسبة الفعلية تلقائيًا.</Text></View>
+    <View style={styles.noteCard}><MaterialIcons name="data-object" size={20} color="#A78BFA" /><Text style={styles.noteText}>يمكنك كتابة المتغير «battery» بين قوسين معقوفين داخل رسالة البطارية ليضع العامل النسبة الفعلية تلقائيًا. تحفظ عتبة الفيديو النهائية ملف MP4 أولًا ثم تمرره للتحقق والضغط والتسليم.</Text></View>
     <ToggleRow label="استمرارية العامل" text="يعيد Android تشغيل الخدمة فقط عند قتلها من النظام. لا يتجاوز الإيقاف الصريح أو قرار الشركة المصنعة." value={settings.keepServiceAlive} onChange={(value) => update("keepServiceAlive", value)} />
     <View style={styles.noteCard}><MaterialIcons name="info-outline" size={20} color="#8EC5FF" /><Text style={styles.noteText}>رسالة الاختبار تطلب الإذن ثم تحاول الإرسال من الهاتف. تحقق من الشريحة ورصيد الرسائل؛ نجاح الطلب لا يثبت تسليم الشبكة.</Text></View>
     <PrimaryButton label="حفظ إعدادات التنبيه" icon="save" onPress={onSave} />
@@ -399,6 +423,8 @@ function CameraSettings({ settings, update, onSave }: { settings: AgentSettings;
     <ChoiceRow label="جودة الصوت" values={["low", "medium", "high"] as const} selected={settings.audioQuality} labelFor={(v: "low" | "medium" | "high") => ({ low: "منخفضة", medium: "متوسطة", high: "عالية" })[v]} onSelect={(v) => update("audioQuality", v)} />
     <ZoomSlider value={settings.zoomRatio} onChange={(value) => update("zoomRatio", value)} />
     <ToggleRow label="ضغط الصور" text="يخفض حجم أدلة الصور قبل الإرسال" value={settings.compressionEnabled} onChange={(value) => update("compressionEnabled", value)} />
+    <ToggleRow label="ضغط الفيديو قبل الإرسال" text="يحوّل MP4 محليًا إلى H.264/AAC بدقة أقل، ويرسل الأصل إذا لم ينتج ملف أصغر وصالح." value={settings.videoCompressionEnabled} onChange={(value) => update("videoCompressionEnabled", value)} />
+    <ChoiceRow label="دقة ضغط الفيديو المستهدفة" values={[360, 480, 720] as const} selected={settings.videoCompressionHeight} labelFor={(value) => `${value}p`} onSelect={(value) => update("videoCompressionHeight", value)} />
     <ToggleRow label="الحذف التلقائي" text="يحذف الدليل المحلي بعد نجاح Telegram فقط" value={settings.autoDeleteEvidence} onChange={(value) => update("autoDeleteEvidence", value)} />
     <PrimaryButton label="حفظ إعدادات الوسائط" icon="save" onPress={onSave} />
   </View>;
@@ -437,6 +463,17 @@ function Diagnostics({ status, health, hardwareTest, busy, onRefresh, onHardware
     {hardwareTest ? <View style={styles.hardwareResult}><TestResult result={{ ok: hardwareTest.cameraOk, message: hardwareTest.cameraDetail }} /><TestResult result={{ ok: hardwareTest.microphoneOk, message: hardwareTest.microphoneDetail }} /></View> : null}
     <View style={styles.noteCard}><MaterialIcons name="battery-alert" size={20} color="#FFC776" /><Text style={styles.noteText}>يجب أن يبقى الإشعار المستمر ظاهرًا بعد التشغيل. إذا قيّد الهاتف التطبيق، أضف التطبيق إلى الاستثناء من تحسين البطارية من إعدادات النظام.</Text></View>
     <SecondaryButton label="طلب استثناء تحسين البطارية" icon="battery-charging-full" onPress={onRequestBatteryExemption} />
+  </View>;
+}
+
+function DeliveryHistory({ entries, busy, onRefresh, onClear }: { entries: DeliveryLogEntry[]; busy: boolean; onRefresh: () => void; onClear: () => void }) {
+  return <View style={styles.sectionStack}>
+    <SectionHeader icon="history" title="سجل الإرسال والتنبيهات" text="يسجل الهاتف محليًا نتائج محاولات SMS ورسائل وملفات Telegram ونسخ Gmail، مع التاريخ وسبب الفشل عند ظهوره." />
+    <View style={styles.actionRow}>
+      <PrimaryButton label="تحديث السجل" icon="refresh" disabled={busy} onPress={onRefresh} />
+      <SecondaryButton label="مسح" icon="delete-outline" disabled={busy || entries.length === 0} destructive onPress={onClear} />
+    </View>
+    {entries.length === 0 ? <View style={styles.emptyHistory}><MaterialIcons name="inbox" size={28} color="#75D5FF" /><Text style={styles.emptyHistoryTitle}>لا توجد عمليات مسجلة بعد</Text><Text style={styles.emptyHistoryText}>سيظهر هنا نجاح أو فشل إرسال التنبيهات والأدلة من APK Android المخصص.</Text></View> : entries.map((entry) => <View key={entry.id} style={[styles.historyCard, entry.ok ? styles.historySuccess : styles.historyFailure]}><View style={styles.historyIcon}><MaterialIcons name={entry.ok ? "check" : "priority-high"} size={18} color={entry.ok ? "#39D7A7" : "#FF9EAA"} /></View><View style={styles.historyCopy}><View style={styles.historyTop}><Text style={styles.historyChannel}>{entry.channel} · {entry.kind}</Text><Text style={styles.historyTime}>{entry.timestamp}</Text></View><Text style={styles.historyDetail}>{entry.detail}</Text></View></View>)}
   </View>;
 }
 
@@ -503,21 +540,21 @@ function SecondaryButton({ label, icon, onPress, disabled = false, destructive =
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#071C2C" },
-  rootLight: { backgroundColor: "#EAF5FA" },
-  topBar: { paddingHorizontal: 18, paddingTop: 12, paddingBottom: 14, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  root: { flex: 1, backgroundColor: "#09131F" },
+  rootLight: { backgroundColor: "#E8F2F8" },
+  topBar: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#0D1C2C", borderBottomWidth: 1, borderBottomColor: "#1A3650" },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   topActions: { flexDirection: "row", alignItems: "center", gap: 7 },
-  brandIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: "#10334D", alignItems: "center", justifyContent: "center" },
-  title: { color: "#F1F8FC", fontSize: 20, fontWeight: "800", writingDirection: "rtl" },
-  subtitle: { color: "#8BA4B4", fontSize: 12, marginTop: 2, writingDirection: "rtl" },
-  iconButton: { width: 42, height: 42, borderRadius: 14, backgroundColor: "#102E43", alignItems: "center", justifyContent: "center" },
-  segmented: { flexDirection: "row", flexWrap: "wrap", borderTopWidth: 1, borderBottomWidth: 1, borderColor: "#17384E", paddingVertical: 7, paddingHorizontal: 8, gap: 5 },
+  brandIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: "#123552", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#276083" },
+  title: { color: "#F4FAFF", fontSize: 20, fontWeight: "800", writingDirection: "rtl" },
+  subtitle: { color: "#9EB8C9", fontSize: 12, marginTop: 2, writingDirection: "rtl" },
+  iconButton: { width: 42, height: 42, borderRadius: 14, backgroundColor: "#142A3E", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#23465F" },
+  segmented: { flexDirection: "row", flexWrap: "wrap", borderBottomWidth: 1, borderColor: "#1A3650", paddingVertical: 9, paddingHorizontal: 10, gap: 6, backgroundColor: "#0B1725" },
   tab: { minWidth: 78, flexGrow: 1, flexBasis: "28%", paddingVertical: 8, alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 12 },
-  tabActive: { backgroundColor: "#B8E7FF" },
-  tabText: { color: "#8BA4B4", fontSize: 10, fontWeight: "700" },
-  tabTextActive: { color: "#071C2C" },
-  content: { padding: 18, paddingBottom: 36, gap: 14 },
+  tabActive: { backgroundColor: "#72D4FF" },
+  tabText: { color: "#90AABD", fontSize: 10, fontWeight: "700" },
+  tabTextActive: { color: "#071825" },
+  content: { padding: 18, paddingBottom: 40, gap: 15 },
   statusCard: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 20, borderWidth: 1 },
   statusReady: { backgroundColor: "#0E312E", borderColor: "#1D6A5B" },
   statusIdle: { backgroundColor: "#3B2C1D", borderColor: "#6C502C" },
@@ -527,14 +564,14 @@ const styles = StyleSheet.create({
   statusMessage: { color: "#C9DCE8", fontSize: 12, lineHeight: 18, marginTop: 4, writingDirection: "rtl", textAlign: "right" },
   dot: { width: 10, height: 10, borderRadius: 5, marginLeft: 9 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 9 },
-  metric: { width: "48%", flexGrow: 1, minHeight: 100, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159", borderRadius: 17, padding: 13, gap: 6 },
+  metric: { width: "48%", flexGrow: 1, minHeight: 100, backgroundColor: "#112438", borderWidth: 1, borderColor: "#224863", borderRadius: 18, padding: 13, gap: 6 },
   metricLabel: { color: "#8BA4B4", fontSize: 11, writingDirection: "rtl", textAlign: "right" },
   metricValue: { color: "#F1F8FC", fontSize: 13, fontWeight: "800", writingDirection: "rtl", textAlign: "right" },
   actionRow: { flexDirection: "row", gap: 10 },
-  primaryButton: { minHeight: 50, borderRadius: 16, backgroundColor: "#B8E7FF", flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  primaryText: { color: "#071C2C", fontWeight: "900", fontSize: 14 },
-  secondaryButton: { minHeight: 50, borderRadius: 16, borderWidth: 1, borderColor: "#2E627E", backgroundColor: "#102A3B", flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  secondaryText: { color: "#B8E7FF", fontWeight: "800", fontSize: 14 },
+  primaryButton: { minHeight: 50, borderRadius: 16, backgroundColor: "#6FD2FF", flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, shadowColor: "#35B8EF", shadowOpacity: 0.24, shadowRadius: 10, elevation: 3 },
+  primaryText: { color: "#061522", fontWeight: "900", fontSize: 14 },
+  secondaryButton: { minHeight: 50, borderRadius: 16, borderWidth: 1, borderColor: "#2E6A8B", backgroundColor: "#122A40", flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
+  secondaryText: { color: "#BCEAFF", fontWeight: "800", fontSize: 14 },
   destructiveButton: { borderColor: "#824451" },
   destructiveText: { color: "#FFB4BD" },
   disabled: { opacity: 0.45 },
@@ -545,7 +582,7 @@ const styles = StyleSheet.create({
   warningText: { color: "#E7C996", fontSize: 12, lineHeight: 18, marginTop: 3, textAlign: "right", writingDirection: "rtl" },
   textAction: { alignSelf: "flex-end", marginTop: 8, paddingVertical: 5 },
   textActionText: { color: "#B8E7FF", fontSize: 12, fontWeight: "800" },
-  noteCard: { flexDirection: "row", gap: 10, padding: 13, borderRadius: 16, backgroundColor: "#0E283A", borderWidth: 1, borderColor: "#1B4763" },
+  noteCard: { flexDirection: "row", gap: 10, padding: 13, borderRadius: 16, backgroundColor: "#0D263B", borderWidth: 1, borderColor: "#21506C" },
   noteText: { flex: 1, color: "#BBD3E2", fontSize: 12, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
   deliveryDivider: { height: 1, backgroundColor: "#214B64", marginVertical: 4 },
   testResult: { flexDirection: "row", alignItems: "flex-start", gap: 9, padding: 12, borderRadius: 14, borderWidth: 1 },
@@ -596,4 +633,16 @@ const styles = StyleSheet.create({
   diagnosticLabel: { color: "#8BA4B4", fontSize: 11, fontWeight: "700", textAlign: "right", writingDirection: "rtl" },
   diagnosticValue: { color: "#E5F0F6", fontSize: 13, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
   errorValue: { color: "#FFB4BD" },
+  emptyHistory: { alignItems: "center", gap: 8, padding: 28, borderRadius: 18, backgroundColor: "#10283C", borderWidth: 1, borderColor: "#21516D" },
+  emptyHistoryTitle: { color: "#E5F5FF", fontSize: 15, fontWeight: "900", writingDirection: "rtl" },
+  emptyHistoryText: { color: "#9CB7C8", fontSize: 12, lineHeight: 18, textAlign: "center", writingDirection: "rtl" },
+  historyCard: { flexDirection: "row", gap: 10, padding: 13, borderRadius: 16, borderWidth: 1 },
+  historySuccess: { backgroundColor: "#0D302E", borderColor: "#1E7166" },
+  historyFailure: { backgroundColor: "#36232B", borderColor: "#81505D" },
+  historyIcon: { width: 30, height: 30, borderRadius: 10, backgroundColor: "#071C2C55", alignItems: "center", justifyContent: "center" },
+  historyCopy: { flex: 1, gap: 4 },
+  historyTop: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
+  historyChannel: { flex: 1, color: "#E6F5FF", fontSize: 12, fontWeight: "800", textAlign: "right", writingDirection: "rtl" },
+  historyTime: { color: "#9CB7C8", fontSize: 10 },
+  historyDetail: { color: "#C2D9E6", fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
 });
