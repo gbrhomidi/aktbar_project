@@ -17,7 +17,7 @@ const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
 const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
-  appName: "Akeer14 Agent",
+  appName: "المراقبة الذكية",
   appSlug: "akeer14-mobile-agent",
   logoUrl: "/manus-storage/akeer14-agent-icon_65f3343c.png",
   scheme: schemeFromBundleId,
@@ -75,15 +75,15 @@ const config: ExpoConfig = {
     [
       "expo-camera",
       {
-        cameraPermission: "السماح لعامل Akeer14 باستخدام الكاميرا لتنفيذ أوامر Telegram.",
-        microphonePermission: "السماح لعامل Akeer14 باستخدام الميكروفون لتسجيل الصوت والفيديو.",
+        cameraPermission: "السماح لعامل المراقبة الذكية باستخدام الكاميرا لتنفيذ أوامر Telegram.",
+        microphonePermission: "السماح لعامل المراقبة الذكية باستخدام الميكروفون لتسجيل الصوت والفيديو.",
         recordAudioAndroid: true,
       },
     ],
     [
       "expo-audio",
       {
-        microphonePermission: "السماح لعامل Akeer14 باستخدام الميكروفون لتسجيل الصوت.",
+        microphonePermission: "السماح لعامل المراقبة الذكية باستخدام الميكروفون لتسجيل الصوت.",
       },
     ],
     [

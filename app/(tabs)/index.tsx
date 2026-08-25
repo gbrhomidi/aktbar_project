@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   I18nManager,
+  Linking,
   PermissionsAndroid,
   Platform,
   Pressable,
@@ -275,8 +276,8 @@ export default function AgentHomeScreen() {
           <View style={styles.brandRow}>
             <View style={styles.brandIcon}><MaterialIcons name="security" size={22} color="#B8E7FF" /></View>
             <View>
-              <Text style={styles.title}>عامل Akeer14</Text>
-              <Text style={styles.subtitle}>تحكم Telegram من الهاتف الثابت</Text>
+              <Text style={styles.title}>المراقبة الذكية</Text>
+              <Text style={styles.subtitle}>عامل Telegram للمراقبة الذكية</Text>
             </View>
           </View>
           <View style={styles.topActions}>
@@ -457,13 +458,33 @@ function DeliveryHistory({ entries, busy, onRefresh, onClear, onExport }: { entr
 }
 
 function TermsAndConditions() {
+  const openContact = (url: string) => {
+    void Linking.openURL(url).catch(() => Alert.alert("تعذر فتح الرابط", "تحقق من وجود تطبيق الهاتف أو WhatsApp أو البريد على الجهاز."));
+  };
+  const updatedDate = new Intl.DateTimeFormat("ar-YE", { year: "numeric", month: "long", day: "numeric" }).format(new Date());
+
   return <View style={styles.sectionStack}>
-    <SectionHeader icon="gavel" title="الشروط والأحكام" text="ملخص تشغيلي مخصص لنظام Akeer14 للمراقبة الذكية." />
+    <SectionHeader icon="gavel" title="الشروط والأحكام" text="ملخص تشغيلي مخصص لنظام المراقبة الذكية." />
     <View style={styles.termsCard}><Text style={styles.termsTitle}>الاستخدام المصرح</Text><Text style={styles.termsText}>استخدم العامل على جهاز تملكه أو لديك تفويض صريح لإدارته. لا تستخدم الكاميرا أو الميكروفون أو التنبيهات لمراقبة الآخرين دون موافقتهم أو بخلاف القوانين المحلية.</Text></View>
     <View style={styles.termsCard}><Text style={styles.termsTitle}>الأدلة والبيانات</Text><Text style={styles.termsText}>تُحفظ بيانات Telegram وGmail ورقم SMS داخل تخزين Android مشفّر. مسؤولية حماية الهاتف وبيانات الاعتماد والمحتوى المسجل تقع على مالك الجهاز.</Text></View>
     <View style={styles.termsCard}><Text style={styles.termsTitle}>التنبيهات والاتصال</Text><Text style={styles.termsText}>تعتمد نتائج Telegram وGmail وSMS على الشبكة والشريحة والصلاحيات والخدمات الخارجية. يحد التطبيق من تكرار SMS لكنه لا يضمن التسليم أو استمرار الشبكة.</Text></View>
     <View style={styles.termsCard}><Text style={styles.termsTitle}>الخلفية والطاقة</Text><Text style={styles.termsText}>يستخدم التطبيق إشعار foreground وخيار استثناء تحسين البطارية بطلب منك. قد تفرض الأجهزة أو أنظمة التشغيل قيودًا لا يستطيع التطبيق تجاوزها، ويمنع الإيقاف القسري أي إعادة تشغيل تلقائية.</Text></View>
+
+    <View style={styles.contactCard}>
+      <View style={styles.contactHeading}><MaterialIcons name="headset-mic" size={22} color="#8EC5FF" /><Text style={styles.contactTitle}>التواصل والدعم الفني</Text></View>
+      <View style={styles.contactPerson}><MaterialIcons name="person" size={19} color="#B8E7FF" /><Text style={styles.contactText}>المهندس <Text style={styles.glowingText}>جبر الحميدي</Text></Text></View>
+      <ContactAction icon="phone" label="اتصال هاتفي" caption="اضغــط هنــا" onPress={() => openContact("tel:+967106586714")} style={styles.phoneAction} />
+      <ContactAction icon="whatsapp" label="WhatsApp" caption="اضغــط هنــا" onPress={() => openContact("https://wa.me/967781038203")} style={styles.whatsappAction} />
+      <ContactAction icon="email" label="البريد الإلكتروني" caption="اضغــط هنــا" onPress={() => openContact("mailto:gbrhomidi@gmail.com")} style={styles.emailAction} />
+    </View>
+    <View style={styles.termsFooterNote}><MaterialIcons name="info-outline" size={18} color="#FFC776" /><Text style={styles.termsFooterText}>باستمرارك في استخدام النظام، فإنك تؤكد موافقتك الكاملة على هذه الشروط والأحكام.</Text></View>
+    <Text style={styles.lastUpdated}>آخر تحديث: {updatedDate}</Text>
   </View>;
+}
+
+function ContactAction({ icon, label, caption, onPress, style }: { icon: "phone" | "whatsapp" | "email"; label: string; caption: string; onPress: () => void; style: object }) {
+  const materialIcon = icon === "phone" ? "phone" : icon === "email" ? "email" : "chat";
+  return <Pressable accessibilityRole="link" accessibilityLabel={`${label}: ${caption}`} onPress={onPress} style={({ pressed }) => [styles.contactAction, style, pressed && styles.pressed]}><MaterialIcons name={materialIcon as React.ComponentProps<typeof MaterialIcons>["name"]} size={18} color="#061522" /><Text style={styles.contactActionLabel}>{label}</Text><Text style={styles.contactActionCaption}>{caption}</Text></Pressable>;
 }
 
 function Metric({ icon, label, value, color }: { icon: React.ComponentProps<typeof MaterialIcons>["name"]; label: string; value: string; color: string }) {
@@ -577,6 +598,21 @@ const styles = StyleSheet.create({
   termsCard: { gap: 7, padding: 15, borderRadius: 16, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159" },
   termsTitle: { color: "#B8E7FF", fontSize: 14, fontWeight: "900", writingDirection: "rtl", textAlign: "right" },
   termsText: { color: "#D1E2EC", fontSize: 12, lineHeight: 20, writingDirection: "rtl", textAlign: "right" },
+  contactCard: { gap: 10, padding: 16, borderRadius: 18, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#2B617F" },
+  contactHeading: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 8 },
+  contactTitle: { color: "#EAF7FF", fontSize: 16, fontWeight: "900", writingDirection: "rtl", textAlign: "right" },
+  contactPerson: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 7 },
+  contactText: { color: "#D1E2EC", fontSize: 13, writingDirection: "rtl", textAlign: "right" },
+  glowingText: { color: "#72D4FF", fontWeight: "900" },
+  contactAction: { minHeight: 48, borderRadius: 14, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
+  contactActionLabel: { color: "#061522", fontWeight: "900", fontSize: 13 },
+  contactActionCaption: { color: "#061522", fontWeight: "800", fontSize: 12 },
+  phoneAction: { backgroundColor: "#72D4FF" },
+  whatsappAction: { backgroundColor: "#63E6A8" },
+  emailAction: { backgroundColor: "#FFC776" },
+  termsFooterNote: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 13, borderRadius: 14, backgroundColor: "#3B2C1D", borderWidth: 1, borderColor: "#6C502C" },
+  termsFooterText: { flex: 1, color: "#FFE1B1", fontSize: 12, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
+  lastUpdated: { color: "#8BA4B4", fontSize: 12, textAlign: "center", writingDirection: "rtl", marginTop: 2 },
   sectionStack: { gap: 13 },
   sectionHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 2 },
   sectionIcon: { width: 42, height: 42, backgroundColor: "#102E43", borderRadius: 14, alignItems: "center", justifyContent: "center" },
