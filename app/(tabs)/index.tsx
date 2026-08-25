@@ -2,7 +2,6 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Camera } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
-import Slider from "@react-native-community/slider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -373,57 +372,6 @@ function TelegramSettings({ settings, update, tokenVisible, setTokenVisible, gma
   </View>;
 }
 
-function AlertSettings({ settings, update, smsTest, busy, onSave, onTestSms }: { settings: AgentSettings; update: <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => void; smsTest: ChannelTestResult | null; busy: boolean; onSave: () => void; onTestSms: () => void }) {
-  return <View style={styles.sectionStack}>
-    <SectionHeader icon="sms" title="تنبيهات SMS واستمرارية العامل" text="تعمل التنبيهات من خدمة Android الأصلية بعد تفعيل صريح ومنح إذن SEND_SMS. لا يُحفظ رقم التنبيه في التخزين العام للواجهة." />
-    <ToggleRow label="تفعيل تنبيهات SMS" text="يظل الإرسال معطلاً حتى تضيف رقمًا وتوافق على إذن Android." value={settings.smsAlertsEnabled} onChange={(value) => update("smsAlertsEnabled", value)} />
-    <Field label="رقم تنبيه SMS" value={settings.smsAlertPhone} placeholder="مثال: +9665…" keyboardType="phone-pad" onChangeText={(value) => update("smsAlertPhone", value)} />
-    <ToggleRow label="تنبيه عند انقطاع الإنترنت" text="يرسل تنبيهًا واحدًا عند انتقال العامل إلى حالة بلا إنترنت." value={settings.smsOnInternetLoss} onChange={(value) => update("smsOnInternetLoss", value)} />
-    <Field label="نص SMS عند انقطاع الإنترنت" value={settings.smsInternetLossMessage} placeholder="اكتب رسالة التنبيه" multiline onChangeText={(value) => update("smsInternetLossMessage", value)} />
-    <ToggleRow label={`تنبيه بطارية ${settings.smsBatteryThreshold}%`} text="يراقب الخدمة والفيديو الطويل مع كبح تكرار الرسائل 30 دقيقة." value={settings.smsOnLowBattery} onChange={(value) => update("smsOnLowBattery", value)} />
-    <ChoiceRow label="عتبة تنبيه SMS للبطارية" values={[5, 10, 15, 20, 30, 50] as const} selected={settings.smsBatteryThreshold} labelFor={(value) => `${value}%`} onSelect={(value) => update("smsBatteryThreshold", value)} />
-    <ChoiceRow label="عتبة حفظ الفيديو الآمن" values={[2, 5, 10, 15, 20] as const} selected={settings.videoSafetyBatteryThreshold} labelFor={(value) => `${value}%`} onSelect={(value) => update("videoSafetyBatteryThreshold", value)} />
-    <Field label="نص SMS عند انخفاض البطارية" value={settings.smsLowBatteryMessage} placeholder="اكتب رسالة التنبيه" multiline onChangeText={(value) => update("smsLowBatteryMessage", value)} />
-    <View style={styles.noteCard}><MaterialIcons name="data-object" size={20} color="#A78BFA" /><Text style={styles.noteText}>يمكنك كتابة المتغير «battery» بين قوسين معقوفين داخل رسالة البطارية ليضع العامل النسبة الفعلية تلقائيًا. تحفظ عتبة الفيديو النهائية ملف MP4 أولًا ثم تمرره للتحقق والضغط والتسليم.</Text></View>
-    <ToggleRow label="استمرارية العامل" text="يعيد Android تشغيل الخدمة فقط عند قتلها من النظام. لا يتجاوز الإيقاف الصريح أو قرار الشركة المصنعة." value={settings.keepServiceAlive} onChange={(value) => update("keepServiceAlive", value)} />
-    <View style={styles.noteCard}><MaterialIcons name="info-outline" size={20} color="#8EC5FF" /><Text style={styles.noteText}>رسالة الاختبار تطلب الإذن ثم تحاول الإرسال من الهاتف. تحقق من الشريحة ورصيد الرسائل؛ نجاح الطلب لا يثبت تسليم الشبكة.</Text></View>
-    <PrimaryButton label="حفظ إعدادات التنبيه" icon="save" onPress={onSave} />
-    <SecondaryButton label={busy ? "جارٍ اختبار SMS…" : "إرسال SMS اختبار"} icon="send" disabled={busy || !settings.smsAlertsEnabled || !settings.smsAlertPhone.trim()} onPress={onTestSms} />
-    <TestResult result={smsTest} />
-  </View>;
-}
-
-function CameraSettings({ settings, update, onSave }: { settings: AgentSettings; update: <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => void; onSave: () => void }) {
-  return <View style={styles.sectionStack}>
-    <SectionHeader icon="photo-camera" title="الكاميرا والوسائط" text="تطبّق هذه الإعدادات في CameraX عند تشغيل العامل أو عند وصول callback Telegram." />
-    <ChoiceRow label="الكاميرا" values={["back", "front"] as const} selected={settings.cameraFacing} labelFor={(v) => v === "back" ? "خلفية" : "أمامية"} onSelect={(v) => update("cameraFacing", v)} />
-    <ToggleRow label="ضوء الفلاش" text="يعمل مع الكاميرا الخلفية فقط" value={settings.flashEnabled} onChange={(value) => update("flashEnabled", value)} />
-    <ChoiceRow label="جودة الفيديو" values={["sd", "hd", "fhd"] as const} selected={settings.videoQuality} labelFor={(v: "sd" | "hd" | "fhd") => ({ sd: "SD", hd: "HD", fhd: "FHD" })[v]} onSelect={(v) => update("videoQuality", v)} />
-    <ChoiceRow label="جودة الصوت" values={["low", "medium", "high"] as const} selected={settings.audioQuality} labelFor={(v: "low" | "medium" | "high") => ({ low: "منخفضة", medium: "متوسطة", high: "عالية" })[v]} onSelect={(v) => update("audioQuality", v)} />
-    <ZoomSlider value={settings.zoomRatio} onChange={(value) => update("zoomRatio", value)} />
-    <ToggleRow label="ضغط الصور" text="يخفض حجم أدلة الصور قبل الإرسال" value={settings.compressionEnabled} onChange={(value) => update("compressionEnabled", value)} />
-    <ToggleRow label="ضغط الفيديو قبل الإرسال" text="يحوّل MP4 محليًا إلى H.264/AAC بدقة أقل، ويرسل الأصل إذا لم ينتج ملف أصغر وصالح." value={settings.videoCompressionEnabled} onChange={(value) => update("videoCompressionEnabled", value)} />
-    <ChoiceRow label="دقة ضغط الفيديو المستهدفة" values={[360, 480, 720] as const} selected={settings.videoCompressionHeight} labelFor={(value) => `${value}p`} onSelect={(value) => update("videoCompressionHeight", value)} />
-    <ToggleRow label="الحذف التلقائي" text="يحذف الدليل المحلي بعد نجاح Telegram فقط" value={settings.autoDeleteEvidence} onChange={(value) => update("autoDeleteEvidence", value)} />
-    <PrimaryButton label="حفظ إعدادات الوسائط" icon="save" onPress={onSave} />
-  </View>;
-}
-
-function DetectionSettings({ settings, update, onSave }: { settings: AgentSettings; update: <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => void; onSave: () => void }) {
-  return <View style={styles.sectionStack}>
-    <SectionHeader icon="sensors" title="الكشف والإجراءات" text="يجري كشف الحركة من تحليل صورة الكاميرا وكشف الصوت من مستوى الميكروفون. تُنفذ الأدلة المختارة فقط بعد الرصد." />
-    <ToggleRow label="كشف الحركة" text="يشغّل تحليل تغيّر الإضاءة محليًا" value={settings.motionEnabled} onChange={(value) => update("motionEnabled", value)} />
-    <ChoiceRow label="حساسية الحركة" values={["low", "medium", "high"] as const} selected={settings.motionSensitivity} labelFor={(v: "low" | "medium" | "high") => ({ low: "منخفضة", medium: "متوسطة", high: "مرتفعة" })[v]} onSelect={(v) => update("motionSensitivity", v)} />
-    <View style={styles.actionGroup}><Text style={styles.groupTitle}>عند كشف حركة</Text><ToggleRow label="صورة" value={settings.motionPhoto} onChange={(value) => update("motionPhoto", value)} compact /><ToggleRow label="تسجيل صوت" value={settings.motionAudio} onChange={(value) => update("motionAudio", value)} compact /><ToggleRow label="تسجيل فيديو" value={settings.motionVideo} onChange={(value) => update("motionVideo", value)} compact /></View>
-    <ToggleRow label="كشف الصوت" text="يقيس مستوى الإشارة من الميكروفون" value={settings.soundEnabled} onChange={(value) => update("soundEnabled", value)} />
-    <ChoiceRow label="حساسية الصوت" values={["low", "medium", "high"] as const} selected={settings.soundSensitivity} labelFor={(v: "low" | "medium" | "high") => ({ low: "منخفضة", medium: "متوسطة", high: "مرتفعة" })[v]} onSelect={(v) => update("soundSensitivity", v)} />
-    <View style={styles.actionGroup}><Text style={styles.groupTitle}>عند كشف صوت</Text><ToggleRow label="صورة" value={settings.soundPhoto} onChange={(value) => update("soundPhoto", value)} compact /><ToggleRow label="تسجيل صوت" value={settings.soundAudio} onChange={(value) => update("soundAudio", value)} compact /><ToggleRow label="تسجيل فيديو" value={settings.soundVideo} onChange={(value) => update("soundVideo", value)} compact /></View>
-    <ChoiceRow label="مدة فيديو الكشف" values={[15, 30, 60]} selected={settings.detectionVideoDuration} labelFor={(v) => `${v} ثانية`} onSelect={(v) => update("detectionVideoDuration", v)} />
-    <ChoiceRow label="مدة صوت الكشف" values={[10, 20, 30]} selected={settings.detectionAudioDuration} labelFor={(v) => `${v} ثانية`} onSelect={(v) => update("detectionAudioDuration", v)} />
-    <PrimaryButton label="حفظ إعدادات الكشف" icon="save" onPress={onSave} />
-  </View>;
-}
-
 function Diagnostics({ status, health, hardwareTest, busy, onRefresh, onHardwareTest, onRequestBatteryExemption }: { status: AgentStatus; health: DeviceHealth | null; hardwareTest: HardwareTestResult | null; busy: boolean; onRefresh: () => void; onHardwareTest: () => void; onRequestBatteryExemption: () => void }) {
   return <View style={styles.sectionStack}>
     <SectionHeader icon="fact-check" title="تشخيص التنفيذ" text="تعكس هذه البطاقة آخر حالة مسجلة من خدمة Android، ولا تضع نتائج افتراضية." />
@@ -513,18 +461,6 @@ function Field({ label, value, placeholder, onChangeText, secure, keyboardType, 
 
 function ToggleRow({ label, text, value, onChange, compact = false }: { label: string; text?: string; value: boolean; onChange: (value: boolean) => void; compact?: boolean }) {
   return <View style={[styles.toggleRow, compact && styles.toggleCompact]}><View style={styles.toggleCopy}><Text style={styles.toggleLabel}>{label}</Text>{text ? <Text style={styles.toggleText}>{text}</Text> : null}</View><Switch value={value} onValueChange={onChange} trackColor={{ false: "#304555", true: "#1F6FA9" }} thumbColor={value ? "#EAF7FF" : "#8BA4B4"} /></View>;
-}
-
-function ChoiceRow<T extends string | number>({ label, values, selected, labelFor, onSelect }: { label: string; values: readonly T[]; selected: T; labelFor: (value: T) => string; onSelect: (value: T) => void }) {
-  return <View style={styles.choiceBlock}><Text style={styles.fieldLabel}>{label}</Text><View style={styles.choices}>{values.map((value) => <Pressable key={String(value)} onPress={() => onSelect(value)} style={({ pressed }) => [styles.choice, selected === value && styles.choiceActive, pressed && styles.pressed]}><Text style={[styles.choiceText, selected === value && styles.choiceTextActive]}>{labelFor(value)}</Text></Pressable>)}</View></View>;
-}
-
-function ZoomSlider({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  return <View style={styles.zoomBlock}>
-    <View style={styles.zoomHeader}><Text style={styles.fieldLabel}>التقريب الحقيقي</Text><Text style={styles.zoomValue}>{value.toFixed(1)}×</Text></View>
-    <Slider minimumValue={1} maximumValue={8} step={0.1} value={value} onValueChange={(next) => onChange(Number(next.toFixed(1)))} minimumTrackTintColor="#8EC5FF" maximumTrackTintColor="#294E64" thumbTintColor="#EAF7FF" accessibilityLabel="تقريب الكاميرا" />
-    <View style={styles.zoomLabels}><Text style={styles.zoomHint}>1×</Text><Text style={styles.zoomHint}>8×</Text></View>
-  </View>;
 }
 
 function DiagnosticRow({ label, value, error = false }: { label: string; value: string; error?: boolean }) {
