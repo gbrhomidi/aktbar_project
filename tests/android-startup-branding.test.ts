@@ -16,7 +16,16 @@ describe("Android startup and branding contract", () => {
 
   it("hides the native splash after the React root mounts", () => {
     expect(read("app/_layout.tsx")).toContain('import * as SplashScreen from "expo-splash-screen";');
+    expect(read("app/_layout.tsx")).toContain("SplashScreen.setOptions({ duration: 360, fade: true });");
     expect(read("app/_layout.tsx")).toContain("void SplashScreen.hideAsync();");
+  });
+
+  it("provides accessible expandable terms sections for the Arabic interface", () => {
+    const screen = read("app/(tabs)/index.tsx");
+    expect(screen).toContain("function TermsDisclosure(");
+    expect(screen).toContain('accessibilityState={{ expanded }}');
+    expect(screen).toContain("termsDisclosureExpanded");
+    expect(screen).toContain("اضغط على أي بند لعرض التفاصيل أو إخفائها.");
   });
 
   it("builds a non-debuggable standalone variant with an embedded bundle", () => {

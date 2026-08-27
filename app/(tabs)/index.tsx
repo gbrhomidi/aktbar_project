@@ -410,13 +410,18 @@ function TermsAndConditions() {
     void Linking.openURL(url).catch(() => Alert.alert("تعذر فتح الرابط", "تحقق من وجود تطبيق الهاتف أو WhatsApp أو البريد على الجهاز."));
   };
   const updatedDate = new Intl.DateTimeFormat("ar-YE", { year: "numeric", month: "long", day: "numeric" }).format(new Date());
+  const [expandedSection, setExpandedSection] = useState<string | null>("authorized-use");
+  const terms = [
+    { id: "authorized-use", icon: "verified-user", title: "الاستخدام المصرح", text: "استخدم العامل على جهاز تملكه أو لديك تفويض صريح لإدارته. لا تستخدم الكاميرا أو الميكروفون أو التنبيهات لمراقبة الآخرين دون موافقتهم أو بخلاف القوانين المحلية." },
+    { id: "evidence-data", icon: "lock", title: "الأدلة والبيانات", text: "تُحفظ بيانات Telegram وGmail ورقم SMS داخل تخزين Android مشفّر. مسؤولية حماية الهاتف وبيانات الاعتماد والمحتوى المسجل تقع على مالك الجهاز." },
+    { id: "alerts-network", icon: "wifi", title: "التنبيهات والاتصال", text: "تعتمد نتائج Telegram وGmail وSMS على الشبكة والشريحة والصلاحيات والخدمات الخارجية. يحد التطبيق من تكرار SMS لكنه لا يضمن التسليم أو استمرار الشبكة." },
+    { id: "background-power", icon: "battery-charging-full", title: "الخلفية والطاقة", text: "يستخدم التطبيق إشعار foreground وخيار استثناء تحسين البطارية بطلب منك. قد تفرض الأجهزة أو أنظمة التشغيل قيودًا لا يستطيع التطبيق تجاوزها، ويمنع الإيقاف القسري أي إعادة تشغيل تلقائية." },
+  ] as const;
 
   return <View style={styles.sectionStack}>
     <SectionHeader icon="gavel" title="الشروط والأحكام" text="ملخص تشغيلي مخصص لنظام المراقبة الذكية." />
-    <View style={styles.termsCard}><Text style={styles.termsTitle}>الاستخدام المصرح</Text><Text style={styles.termsText}>استخدم العامل على جهاز تملكه أو لديك تفويض صريح لإدارته. لا تستخدم الكاميرا أو الميكروفون أو التنبيهات لمراقبة الآخرين دون موافقتهم أو بخلاف القوانين المحلية.</Text></View>
-    <View style={styles.termsCard}><Text style={styles.termsTitle}>الأدلة والبيانات</Text><Text style={styles.termsText}>تُحفظ بيانات Telegram وGmail ورقم SMS داخل تخزين Android مشفّر. مسؤولية حماية الهاتف وبيانات الاعتماد والمحتوى المسجل تقع على مالك الجهاز.</Text></View>
-    <View style={styles.termsCard}><Text style={styles.termsTitle}>التنبيهات والاتصال</Text><Text style={styles.termsText}>تعتمد نتائج Telegram وGmail وSMS على الشبكة والشريحة والصلاحيات والخدمات الخارجية. يحد التطبيق من تكرار SMS لكنه لا يضمن التسليم أو استمرار الشبكة.</Text></View>
-    <View style={styles.termsCard}><Text style={styles.termsTitle}>الخلفية والطاقة</Text><Text style={styles.termsText}>يستخدم التطبيق إشعار foreground وخيار استثناء تحسين البطارية بطلب منك. قد تفرض الأجهزة أو أنظمة التشغيل قيودًا لا يستطيع التطبيق تجاوزها، ويمنع الإيقاف القسري أي إعادة تشغيل تلقائية.</Text></View>
+    <Text style={styles.termsHint}>اضغط على أي بند لعرض التفاصيل أو إخفائها.</Text>
+    {terms.map((term) => <TermsDisclosure key={term.id} {...term} expanded={expandedSection === term.id} onPress={() => setExpandedSection((current) => current === term.id ? null : term.id)} />)}
 
     <View style={styles.contactCard}>
       <View style={styles.contactHeading}><MaterialIcons name="headset-mic" size={22} color="#8EC5FF" /><Text style={styles.contactTitle}>التواصل والدعم الفني</Text></View>
@@ -427,6 +432,17 @@ function TermsAndConditions() {
     </View>
     <View style={styles.termsFooterNote}><MaterialIcons name="info-outline" size={18} color="#FFC776" /><Text style={styles.termsFooterText}>باستمرارك في استخدام النظام، فإنك تؤكد موافقتك الكاملة على هذه الشروط والأحكام.</Text></View>
     <Text style={styles.lastUpdated}>آخر تحديث: {updatedDate}</Text>
+  </View>;
+}
+
+function TermsDisclosure({ icon, title, text, expanded, onPress }: { icon: React.ComponentProps<typeof MaterialIcons>["name"]; title: string; text: string; expanded: boolean; onPress: () => void }) {
+  return <View style={[styles.termsDisclosure, expanded && styles.termsDisclosureExpanded]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`${title}: ${expanded ? "إخفاء التفاصيل" : "عرض التفاصيل"}`} accessibilityState={{ expanded }} onPress={onPress} style={({ pressed }) => [styles.termsDisclosureHeader, pressed && styles.pressed]}>
+      <MaterialIcons name={expanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={24} color="#8EC5FF" />
+      <View style={styles.termsDisclosureCopy}><Text style={styles.termsTitle}>{title}</Text><Text style={styles.termsDisclosureAction}>{expanded ? "إخفاء التفاصيل" : "عرض التفاصيل"}</Text></View>
+      <View style={styles.termsDisclosureIcon}><MaterialIcons name={icon} size={19} color="#8EC5FF" /></View>
+    </Pressable>
+    {expanded ? <View style={styles.termsDisclosureBody}><Text style={styles.termsText}>{text}</Text></View> : null}
   </View>;
 }
 
@@ -534,6 +550,14 @@ const styles = StyleSheet.create({
   termsCard: { gap: 7, padding: 15, borderRadius: 16, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159" },
   termsTitle: { color: "#B8E7FF", fontSize: 14, fontWeight: "900", writingDirection: "rtl", textAlign: "right" },
   termsText: { color: "#D1E2EC", fontSize: 12, lineHeight: 20, writingDirection: "rtl", textAlign: "right" },
+  termsHint: { color: "#8BA4B4", fontSize: 12, lineHeight: 18, writingDirection: "rtl", textAlign: "right", marginTop: -3 },
+  termsDisclosure: { overflow: "hidden", borderRadius: 16, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159" },
+  termsDisclosureExpanded: { borderColor: "#2B617F", backgroundColor: "#0E2B40" },
+  termsDisclosureHeader: { minHeight: 64, paddingHorizontal: 13, paddingVertical: 11, flexDirection: "row", alignItems: "center", gap: 10 },
+  termsDisclosureCopy: { flex: 1, gap: 3 },
+  termsDisclosureAction: { color: "#79B4CE", fontSize: 11, writingDirection: "rtl", textAlign: "right" },
+  termsDisclosureIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: "#143B53", alignItems: "center", justifyContent: "center" },
+  termsDisclosureBody: { borderTopWidth: 1, borderTopColor: "#214B64", paddingHorizontal: 15, paddingTop: 12, paddingBottom: 15 },
   contactCard: { gap: 10, padding: 16, borderRadius: 18, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#2B617F" },
   contactHeading: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 8 },
   contactTitle: { color: "#EAF7FF", fontSize: 16, fontWeight: "900", writingDirection: "rtl", textAlign: "right" },
