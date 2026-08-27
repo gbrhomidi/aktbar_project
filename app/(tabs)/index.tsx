@@ -2,7 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Camera } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -47,6 +47,7 @@ import {
   testTelegramConnection,
 } from "@/lib/telegram-agent";
 import { isTelegramSettingsReady } from "@/lib/agent-protocol";
+import type { ColorScheme } from "@/constants/theme";
 import { useThemeContext } from "@/lib/theme-provider";
 
 I18nManager.allowRTL(true);
@@ -60,9 +61,19 @@ const initialStatus: AgentStatus = {
 };
 
 type Section = "overview" | "telegram" | "camera" | "detection" | "alerts" | "history" | "diagnostics" | "terms";
+type AgentStyles = ReturnType<typeof createAgentStyles>;
+
+const AgentStylesContext = createContext<AgentStyles | null>(null);
+
+function useAgentStyles(): AgentStyles {
+  const styles = useContext(AgentStylesContext);
+  if (!styles) throw new Error("Agent styles must be available inside the main screen.");
+  return styles;
+}
 
 export default function AgentHomeScreen() {
   const { colorScheme, setColorScheme } = useThemeContext();
+  const styles = useMemo(() => createAgentStyles(colorScheme), [colorScheme]);
   const [section, setSection] = useState<Section>("overview");
   const [settings, setSettings] = useState<AgentSettings>(defaultSettings);
   const [status, setStatus] = useState<AgentStatus>(initialStatus);
@@ -269,6 +280,7 @@ export default function AgentHomeScreen() {
   };
 
   return (
+    <AgentStylesContext.Provider value={styles}>
     <ScreenContainer edges={["top", "left", "right"]} containerClassName="bg-background">
       <View style={[styles.root, colorScheme === "light" && styles.rootLight]}>
         <View style={styles.topBar}>
@@ -316,10 +328,12 @@ export default function AgentHomeScreen() {
         </ScrollView>
       </View>
     </ScreenContainer>
+    </AgentStylesContext.Provider>
   );
 }
 
 function Overview({ status, health, ready, busy, onStart, onStop, onOpenTelegram }: { status: AgentStatus; health: DeviceHealth | null; ready: boolean; busy: boolean; onStart: () => void; onStop: () => void; onOpenTelegram: () => void }) {
+  const styles = useAgentStyles();
   return <>
     <View style={[styles.statusCard, status.running ? styles.statusReady : styles.statusIdle]}>
       <View style={styles.statusIcon}><MaterialIcons name={status.running ? "shield" : "shield"} size={30} color={status.running ? "#55E0B9" : "#FFC776"} /></View>
@@ -347,6 +361,7 @@ function Overview({ status, health, ready, busy, onStart, onStop, onOpenTelegram
 }
 
 function TelegramSettings({ settings, update, tokenVisible, setTokenVisible, gmailPasswordVisible, setGmailPasswordVisible, telegramTest, gmailTest, activeCheck, progressText, busy, onSave, onTestTelegram, onTestGmail, onForget }: { settings: AgentSettings; update: <K extends keyof AgentSettings>(key: K, value: AgentSettings[K]) => void; tokenVisible: boolean; setTokenVisible: (value: boolean) => void; gmailPasswordVisible: boolean; setGmailPasswordVisible: (value: boolean) => void; telegramTest: ChannelTestResult | null; gmailTest: ChannelTestResult | null; activeCheck: "telegram" | "gmail" | null; progressText: string; busy: boolean; onSave: () => void; onTestTelegram: () => void; onTestGmail: () => void; onForget: () => void }) {
+  const styles = useAgentStyles();
   return <View style={styles.sectionStack}>
     <SectionHeader icon="send" title="إعدادات Telegram وGmail" text="تُحفظ الأسرار في تخزين Android المشفر على الهاتف. لا تُرسل إلى خادم التطبيق أو بيئة الواجهة." />
     <Field label="Bot Token" value={settings.botToken} secure={!tokenVisible} placeholder="123456:ABC…" onChangeText={(value) => update("botToken", value)} trailing={<Pressable onPress={() => setTokenVisible(!tokenVisible)} style={({ pressed }) => [styles.trailingAction, pressed && styles.pressed]}><MaterialIcons name={tokenVisible ? "visibility-off" : "visibility"} size={19} color="#8BA4B4" /></Pressable>} />
@@ -373,6 +388,7 @@ function TelegramSettings({ settings, update, tokenVisible, setTokenVisible, gma
 }
 
 function Diagnostics({ status, health, hardwareTest, busy, onRefresh, onHardwareTest, onRequestBatteryExemption }: { status: AgentStatus; health: DeviceHealth | null; hardwareTest: HardwareTestResult | null; busy: boolean; onRefresh: () => void; onHardwareTest: () => void; onRequestBatteryExemption: () => void }) {
+  const styles = useAgentStyles();
   return <View style={styles.sectionStack}>
     <SectionHeader icon="fact-check" title="تشخيص التنفيذ" text="تعكس هذه البطاقة آخر حالة مسجلة من خدمة Android، ولا تضع نتائج افتراضية." />
     <DiagnosticRow label="المرحلة" value={status.phase} />
@@ -394,6 +410,7 @@ function Diagnostics({ status, health, hardwareTest, busy, onRefresh, onHardware
 }
 
 function DeliveryHistory({ entries, busy, onRefresh, onClear, onExport }: { entries: DeliveryLogEntry[]; busy: boolean; onRefresh: () => void; onClear: () => void; onExport: () => void }) {
+  const styles = useAgentStyles();
   return <View style={styles.sectionStack}>
     <SectionHeader icon="history" title="سجل الإرسال والتنبيهات" text="يسجل الهاتف محليًا نتائج محاولات SMS ورسائل وملفات Telegram ونسخ Gmail، مع التاريخ وسبب الفشل عند ظهوره." />
     <View style={styles.actionRow}>
@@ -406,6 +423,7 @@ function DeliveryHistory({ entries, busy, onRefresh, onClear, onExport }: { entr
 }
 
 function TermsAndConditions() {
+  const styles = useAgentStyles();
   const openContact = (url: string) => {
     void Linking.openURL(url).catch(() => Alert.alert("تعذر فتح الرابط", "تحقق من وجود تطبيق الهاتف أو WhatsApp أو البريد على الجهاز."));
   };
@@ -436,6 +454,7 @@ function TermsAndConditions() {
 }
 
 function TermsDisclosure({ icon, title, text, expanded, onPress }: { icon: React.ComponentProps<typeof MaterialIcons>["name"]; title: string; text: string; expanded: boolean; onPress: () => void }) {
+  const styles = useAgentStyles();
   return <View style={[styles.termsDisclosure, expanded && styles.termsDisclosureExpanded]}>
     <Pressable accessibilityRole="button" accessibilityLabel={`${title}: ${expanded ? "إخفاء التفاصيل" : "عرض التفاصيل"}`} accessibilityState={{ expanded }} onPress={onPress} style={({ pressed }) => [styles.termsDisclosureHeader, pressed && styles.pressed]}>
       <MaterialIcons name={expanded ? "keyboard-arrow-up" : "keyboard-arrow-down"} size={24} color="#8EC5FF" />
@@ -447,19 +466,23 @@ function TermsDisclosure({ icon, title, text, expanded, onPress }: { icon: React
 }
 
 function ContactAction({ icon, label, caption, onPress, style }: { icon: "phone" | "whatsapp" | "email"; label: string; caption: string; onPress: () => void; style: object }) {
+  const styles = useAgentStyles();
   const materialIcon = icon === "phone" ? "phone" : icon === "email" ? "email" : "chat";
   return <Pressable accessibilityRole="link" accessibilityLabel={`${label}: ${caption}`} onPress={onPress} style={({ pressed }) => [styles.contactAction, style, pressed && styles.pressed]}><MaterialIcons name={materialIcon as React.ComponentProps<typeof MaterialIcons>["name"]} size={18} color="#061522" /><Text style={styles.contactActionLabel}>{label}</Text><Text style={styles.contactActionCaption}>{caption}</Text></Pressable>;
 }
 
 function Metric({ icon, label, value, color }: { icon: React.ComponentProps<typeof MaterialIcons>["name"]; label: string; value: string; color: string }) {
+  const styles = useAgentStyles();
   return <View style={styles.metric}><MaterialIcons name={icon} size={19} color={color} /><Text style={styles.metricLabel}>{label}</Text><Text style={styles.metricValue} numberOfLines={1}>{value}</Text></View>;
 }
 
 function SectionHeader({ icon, title, text }: { icon: React.ComponentProps<typeof MaterialIcons>["name"]; title: string; text: string }) {
+  const styles = useAgentStyles();
   return <View style={styles.sectionHeader}><View style={styles.sectionIcon}><MaterialIcons name={icon} size={22} color="#8EC5FF" /></View><View style={styles.headerCopy}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionText}>{text}</Text></View></View>;
 }
 
 function ConnectionTestStatus({ active, text, result }: { active: boolean; text: string; result: ChannelTestResult | null }) {
+  const styles = useAgentStyles();
   if (active) {
     return <View style={styles.testProgress}><ActivityIndicator size="small" color="#8EC5FF" /><View style={styles.progressCopy}><Text style={styles.progressTitle}>جارٍ اختبار الاتصال</Text><Text style={styles.progressText}>{text}</Text></View></View>;
   }
@@ -467,157 +490,179 @@ function ConnectionTestStatus({ active, text, result }: { active: boolean; text:
 }
 
 function TestResult({ result }: { result: ChannelTestResult | null }) {
+  const styles = useAgentStyles();
   if (!result) return null;
   return <View style={[styles.testResult, result.ok ? styles.testSuccess : styles.testFailure]}><MaterialIcons name={result.ok ? "check-circle" : "error-outline"} size={19} color={result.ok ? "#55E0B9" : "#FFB4BD"} /><Text style={[styles.testText, !result.ok && styles.testErrorText]}>{result.message}</Text></View>;
 }
 
 function Field({ label, value, placeholder, onChangeText, secure, keyboardType, trailing, multiline = false }: { label: string; value: string; placeholder: string; onChangeText: (value: string) => void; secure?: boolean; keyboardType?: React.ComponentProps<typeof TextInput>["keyboardType"]; trailing?: React.ReactNode; multiline?: boolean }) {
+  const styles = useAgentStyles();
   return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><View style={[styles.inputShell, multiline && styles.inputShellMultiline]}><TextInput style={[styles.input, multiline && styles.inputMultiline]} value={value} placeholder={placeholder} placeholderTextColor="#5F788A" secureTextEntry={secure} autoCapitalize="none" autoCorrect={false} keyboardType={keyboardType} onChangeText={onChangeText} textAlign="left" multiline={multiline} numberOfLines={multiline ? 3 : 1} textAlignVertical={multiline ? "top" : "center"} /><View>{trailing}</View></View></View>;
 }
 
 function ToggleRow({ label, text, value, onChange, compact = false }: { label: string; text?: string; value: boolean; onChange: (value: boolean) => void; compact?: boolean }) {
+  const styles = useAgentStyles();
   return <View style={[styles.toggleRow, compact && styles.toggleCompact]}><View style={styles.toggleCopy}><Text style={styles.toggleLabel}>{label}</Text>{text ? <Text style={styles.toggleText}>{text}</Text> : null}</View><Switch value={value} onValueChange={onChange} trackColor={{ false: "#304555", true: "#1F6FA9" }} thumbColor={value ? "#EAF7FF" : "#8BA4B4"} /></View>;
 }
 
 function DiagnosticRow({ label, value, error = false }: { label: string; value: string; error?: boolean }) {
+  const styles = useAgentStyles();
   return <View style={styles.diagnostic}><Text style={styles.diagnosticLabel}>{label}</Text><Text style={[styles.diagnosticValue, error && styles.errorValue]}>{value}</Text></View>;
 }
 
 function PrimaryButton({ label, icon, onPress, disabled = false }: { label: string; icon: React.ComponentProps<typeof MaterialIcons>["name"]; onPress: () => void; disabled?: boolean }) {
+  const styles = useAgentStyles();
   return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.primaryButton, disabled && styles.disabled, pressed && styles.pressed]}><MaterialIcons name={icon} size={21} color="#071C2C" /><Text style={styles.primaryText}>{label}</Text></Pressable>;
 }
 
 function SecondaryButton({ label, icon, onPress, disabled = false, destructive = false }: { label: string; icon: React.ComponentProps<typeof MaterialIcons>["name"]; onPress: () => void; disabled?: boolean; destructive?: boolean }) {
+  const styles = useAgentStyles();
   return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.secondaryButton, destructive && styles.destructiveButton, disabled && styles.disabled, pressed && styles.pressed]}><MaterialIcons name={icon} size={20} color={destructive ? "#FFB4BD" : "#B8E7FF"} /><Text style={[styles.secondaryText, destructive && styles.destructiveText]}>{label}</Text></Pressable>;
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#09131F" },
-  rootLight: { backgroundColor: "#E8F2F8" },
-  topBar: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: "#0D1C2C", borderBottomWidth: 1, borderBottomColor: "#1A3650" },
+function createAgentStyles(scheme: ColorScheme) {
+  const light = scheme === "light";
+  const palette = light
+    ? {
+        canvas: "#F5F8FC", chrome: "#FFFFFF", chromeAlt: "#EEF5F9", card: "#FFFFFF", cardAlt: "#EFF6FA",
+        border: "#C9DCE8", borderStrong: "#A9CCDE", text: "#0B2435", textSoft: "#587080", textMuted: "#47687B",
+        accent: "#1F6FA9", accentSoft: "#DCEFFC", onAccent: "#FFFFFF", info: "#EAF6FD", success: "#E4F7F1",
+        successBorder: "#8BCFBE", warning: "#FFF3DD", warningBorder: "#E4C688", danger: "#FCEBED", dangerBorder: "#E5A5AD",
+      }
+    : {
+        canvas: "#09131F", chrome: "#0D1C2C", chromeAlt: "#0B1725", card: "#102A3B", cardAlt: "#0D263B",
+        border: "#1B4159", borderStrong: "#2B617F", text: "#F1F8FC", textSoft: "#8BA4B4", textMuted: "#BBD3E2",
+        accent: "#72D4FF", accentSoft: "#143B53", onAccent: "#071825", info: "#0C2D43", success: "#0E312E",
+        successBorder: "#1D6A5B", warning: "#3B2C1D", warningBorder: "#6C502C", danger: "#3A2028", dangerBorder: "#824451",
+      };
+  return StyleSheet.create({
+  root: { flex: 1, backgroundColor: palette.canvas },
+  rootLight: {},
+  topBar: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: palette.chrome, borderBottomWidth: 1, borderBottomColor: palette.border },
   brandRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   topActions: { flexDirection: "row", alignItems: "center", gap: 7 },
-  brandIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: "#123552", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#276083" },
-  title: { color: "#F4FAFF", fontSize: 20, fontWeight: "800", writingDirection: "rtl" },
-  subtitle: { color: "#9EB8C9", fontSize: 12, marginTop: 2, writingDirection: "rtl" },
-  iconButton: { width: 42, height: 42, borderRadius: 14, backgroundColor: "#142A3E", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#23465F" },
-  segmented: { flexDirection: "row", flexWrap: "wrap", borderBottomWidth: 1, borderColor: "#1A3650", paddingVertical: 9, paddingHorizontal: 10, gap: 6, backgroundColor: "#0B1725" },
+  brandIcon: { width: 42, height: 42, borderRadius: 14, backgroundColor: palette.accentSoft, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: palette.borderStrong },
+  title: { color: palette.text, fontSize: 20, fontWeight: "800", writingDirection: "rtl" },
+  subtitle: { color: palette.textSoft, fontSize: 12, marginTop: 2, writingDirection: "rtl" },
+  iconButton: { width: 42, height: 42, borderRadius: 14, backgroundColor: palette.cardAlt, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: palette.border },
+  segmented: { flexDirection: "row", flexWrap: "wrap", borderBottomWidth: 1, borderColor: palette.border, paddingVertical: 9, paddingHorizontal: 10, gap: 6, backgroundColor: palette.chromeAlt },
   tab: { minWidth: 78, flexGrow: 1, flexBasis: "28%", paddingVertical: 8, alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 12 },
-  tabActive: { backgroundColor: "#72D4FF" },
-  tabText: { color: "#90AABD", fontSize: 10, fontWeight: "700" },
-  tabTextActive: { color: "#071825" },
+  tabActive: { backgroundColor: palette.accent },
+  tabText: { color: palette.textSoft, fontSize: 10, fontWeight: "700" },
+  tabTextActive: { color: palette.onAccent },
   content: { padding: 18, paddingBottom: 40, gap: 15 },
   statusCard: { flexDirection: "row", alignItems: "center", padding: 16, borderRadius: 20, borderWidth: 1 },
-  statusReady: { backgroundColor: "#0E312E", borderColor: "#1D6A5B" },
-  statusIdle: { backgroundColor: "#3B2C1D", borderColor: "#6C502C" },
+  statusReady: { backgroundColor: palette.success, borderColor: palette.successBorder },
+  statusIdle: { backgroundColor: palette.warning, borderColor: palette.warningBorder },
   statusIcon: { width: 46, height: 46, borderRadius: 16, backgroundColor: "#071C2C55", alignItems: "center", justifyContent: "center", marginRight: 12 },
   statusCopy: { flex: 1 },
-  statusLabel: { color: "#F1F8FC", fontSize: 16, fontWeight: "800", writingDirection: "rtl", textAlign: "right" },
-  statusMessage: { color: "#C9DCE8", fontSize: 12, lineHeight: 18, marginTop: 4, writingDirection: "rtl", textAlign: "right" },
+  statusLabel: { color: palette.text, fontSize: 16, fontWeight: "800", writingDirection: "rtl", textAlign: "right" },
+  statusMessage: { color: palette.textMuted, fontSize: 12, lineHeight: 18, marginTop: 4, writingDirection: "rtl", textAlign: "right" },
   dot: { width: 10, height: 10, borderRadius: 5, marginLeft: 9 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 9 },
-  metric: { width: "48%", flexGrow: 1, minHeight: 100, backgroundColor: "#112438", borderWidth: 1, borderColor: "#224863", borderRadius: 18, padding: 13, gap: 6 },
-  metricLabel: { color: "#8BA4B4", fontSize: 11, writingDirection: "rtl", textAlign: "right" },
-  metricValue: { color: "#F1F8FC", fontSize: 13, fontWeight: "800", writingDirection: "rtl", textAlign: "right" },
+  metric: { width: "48%", flexGrow: 1, minHeight: 100, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.border, borderRadius: 18, padding: 13, gap: 6 },
+  metricLabel: { color: palette.textSoft, fontSize: 11, writingDirection: "rtl", textAlign: "right" },
+  metricValue: { color: palette.text, fontSize: 13, fontWeight: "800", writingDirection: "rtl", textAlign: "right" },
   actionRow: { flexDirection: "row", gap: 10 },
-  primaryButton: { minHeight: 50, borderRadius: 16, backgroundColor: "#6FD2FF", flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, shadowColor: "#35B8EF", shadowOpacity: 0.24, shadowRadius: 10, elevation: 3 },
-  primaryText: { color: "#061522", fontWeight: "900", fontSize: 14 },
-  secondaryButton: { minHeight: 50, borderRadius: 16, borderWidth: 1, borderColor: "#2E6A8B", backgroundColor: "#122A40", flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  secondaryText: { color: "#BCEAFF", fontWeight: "800", fontSize: 14 },
+  primaryButton: { minHeight: 50, borderRadius: 16, backgroundColor: palette.accent, flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, shadowColor: palette.accent, shadowOpacity: 0.24, shadowRadius: 10, elevation: 3 },
+  primaryText: { color: palette.onAccent, fontWeight: "900", fontSize: 14 },
+  secondaryButton: { minHeight: 50, borderRadius: 16, borderWidth: 1, borderColor: palette.borderStrong, backgroundColor: palette.card, flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
+  secondaryText: { color: palette.accent, fontWeight: "800", fontSize: 14 },
   destructiveButton: { borderColor: "#824451" },
   destructiveText: { color: "#FFB4BD" },
   disabled: { opacity: 0.45 },
   pressed: { opacity: 0.76, transform: [{ scale: 0.98 }] },
-  warningCard: { flexDirection: "row", gap: 10, padding: 14, borderRadius: 16, backgroundColor: "#3B2C1D", borderWidth: 1, borderColor: "#6C502C" },
+  warningCard: { flexDirection: "row", gap: 10, padding: 14, borderRadius: 16, backgroundColor: palette.warning, borderWidth: 1, borderColor: palette.warningBorder },
   warningCopy: { flex: 1 },
   warningTitle: { color: "#FFE1B1", fontWeight: "800", textAlign: "right", writingDirection: "rtl" },
   warningText: { color: "#E7C996", fontSize: 12, lineHeight: 18, marginTop: 3, textAlign: "right", writingDirection: "rtl" },
   textAction: { alignSelf: "flex-end", marginTop: 8, paddingVertical: 5 },
   textActionText: { color: "#B8E7FF", fontSize: 12, fontWeight: "800" },
-  noteCard: { flexDirection: "row", gap: 10, padding: 13, borderRadius: 16, backgroundColor: "#0D263B", borderWidth: 1, borderColor: "#21506C" },
-  noteText: { flex: 1, color: "#BBD3E2", fontSize: 12, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
-  deliveryDivider: { height: 1, backgroundColor: "#214B64", marginVertical: 4 },
+  noteCard: { flexDirection: "row", gap: 10, padding: 13, borderRadius: 16, backgroundColor: palette.info, borderWidth: 1, borderColor: palette.borderStrong },
+  noteText: { flex: 1, color: palette.textMuted, fontSize: 12, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
+  deliveryDivider: { height: 1, backgroundColor: palette.border, marginVertical: 4 },
   testResult: { flexDirection: "row", alignItems: "flex-start", gap: 9, padding: 12, borderRadius: 14, borderWidth: 1 },
-  testProgress: { flexDirection: "row", alignItems: "center", gap: 10, padding: 13, borderRadius: 14, borderWidth: 1, borderColor: "#2E627E", backgroundColor: "#0C2D43" },
+  testProgress: { flexDirection: "row", alignItems: "center", gap: 10, padding: 13, borderRadius: 14, borderWidth: 1, borderColor: palette.borderStrong, backgroundColor: palette.info },
   progressCopy: { flex: 1, gap: 2 },
-  progressTitle: { color: "#DCEFFA", fontSize: 13, fontWeight: "800", textAlign: "right", writingDirection: "rtl" },
-  progressText: { color: "#9DC7DD", fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
-  testSuccess: { backgroundColor: "#0E312E", borderColor: "#1D6A5B" },
-  testFailure: { backgroundColor: "#3A2028", borderColor: "#824451" },
-  testText: { flex: 1, color: "#C7F6E8", fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
+  progressTitle: { color: palette.text, fontSize: 13, fontWeight: "800", textAlign: "right", writingDirection: "rtl" },
+  progressText: { color: palette.textMuted, fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
+  testSuccess: { backgroundColor: palette.success, borderColor: palette.successBorder },
+  testFailure: { backgroundColor: palette.danger, borderColor: palette.dangerBorder },
+  testText: { flex: 1, color: palette.text, fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
   testErrorText: { color: "#FFD2D8" },
   hardwareResult: { gap: 8 },
-  termsCard: { gap: 7, padding: 15, borderRadius: 16, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159" },
-  termsTitle: { color: "#B8E7FF", fontSize: 14, fontWeight: "900", writingDirection: "rtl", textAlign: "right" },
-  termsText: { color: "#D1E2EC", fontSize: 12, lineHeight: 20, writingDirection: "rtl", textAlign: "right" },
-  termsHint: { color: "#8BA4B4", fontSize: 12, lineHeight: 18, writingDirection: "rtl", textAlign: "right", marginTop: -3 },
-  termsDisclosure: { overflow: "hidden", borderRadius: 16, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159" },
-  termsDisclosureExpanded: { borderColor: "#2B617F", backgroundColor: "#0E2B40" },
+  termsCard: { gap: 7, padding: 15, borderRadius: 16, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.border },
+  termsTitle: { color: palette.accent, fontSize: 14, fontWeight: "900", writingDirection: "rtl", textAlign: "right" },
+  termsText: { color: palette.textMuted, fontSize: 12, lineHeight: 20, writingDirection: "rtl", textAlign: "right" },
+  termsHint: { color: palette.textSoft, fontSize: 12, lineHeight: 18, writingDirection: "rtl", textAlign: "right", marginTop: -3 },
+  termsDisclosure: { overflow: "hidden", borderRadius: 16, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.border },
+  termsDisclosureExpanded: { borderColor: palette.borderStrong, backgroundColor: palette.cardAlt },
   termsDisclosureHeader: { minHeight: 64, paddingHorizontal: 13, paddingVertical: 11, flexDirection: "row", alignItems: "center", gap: 10 },
   termsDisclosureCopy: { flex: 1, gap: 3 },
-  termsDisclosureAction: { color: "#79B4CE", fontSize: 11, writingDirection: "rtl", textAlign: "right" },
-  termsDisclosureIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: "#143B53", alignItems: "center", justifyContent: "center" },
-  termsDisclosureBody: { borderTopWidth: 1, borderTopColor: "#214B64", paddingHorizontal: 15, paddingTop: 12, paddingBottom: 15 },
-  contactCard: { gap: 10, padding: 16, borderRadius: 18, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#2B617F" },
+  termsDisclosureAction: { color: palette.textSoft, fontSize: 11, writingDirection: "rtl", textAlign: "right" },
+  termsDisclosureIcon: { width: 34, height: 34, borderRadius: 11, backgroundColor: palette.accentSoft, alignItems: "center", justifyContent: "center" },
+  termsDisclosureBody: { borderTopWidth: 1, borderTopColor: palette.border, paddingHorizontal: 15, paddingTop: 12, paddingBottom: 15 },
+  contactCard: { gap: 10, padding: 16, borderRadius: 18, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.borderStrong },
   contactHeading: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 8 },
-  contactTitle: { color: "#EAF7FF", fontSize: 16, fontWeight: "900", writingDirection: "rtl", textAlign: "right" },
+  contactTitle: { color: palette.text, fontSize: 16, fontWeight: "900", writingDirection: "rtl", textAlign: "right" },
   contactPerson: { flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 7 },
-  contactText: { color: "#D1E2EC", fontSize: 13, writingDirection: "rtl", textAlign: "right" },
-  glowingText: { color: "#72D4FF", fontWeight: "900" },
+  contactText: { color: palette.textMuted, fontSize: 13, writingDirection: "rtl", textAlign: "right" },
+  glowingText: { color: palette.accent, fontWeight: "900" },
   contactAction: { minHeight: 48, borderRadius: 14, paddingHorizontal: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
   contactActionLabel: { color: "#061522", fontWeight: "900", fontSize: 13 },
   contactActionCaption: { color: "#061522", fontWeight: "800", fontSize: 12 },
   phoneAction: { backgroundColor: "#72D4FF" },
   whatsappAction: { backgroundColor: "#63E6A8" },
   emailAction: { backgroundColor: "#FFC776" },
-  termsFooterNote: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 13, borderRadius: 14, backgroundColor: "#3B2C1D", borderWidth: 1, borderColor: "#6C502C" },
-  termsFooterText: { flex: 1, color: "#FFE1B1", fontSize: 12, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
-  lastUpdated: { color: "#8BA4B4", fontSize: 12, textAlign: "center", writingDirection: "rtl", marginTop: 2 },
+  termsFooterNote: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 13, borderRadius: 14, backgroundColor: palette.warning, borderWidth: 1, borderColor: palette.warningBorder },
+  termsFooterText: { flex: 1, color: palette.text, fontSize: 12, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
+  lastUpdated: { color: palette.textSoft, fontSize: 12, textAlign: "center", writingDirection: "rtl", marginTop: 2 },
   sectionStack: { gap: 13 },
   sectionHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 2 },
-  sectionIcon: { width: 42, height: 42, backgroundColor: "#102E43", borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  sectionIcon: { width: 42, height: 42, backgroundColor: palette.accentSoft, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   headerCopy: { flex: 1 },
-  sectionTitle: { color: "#F1F8FC", fontSize: 18, fontWeight: "900", textAlign: "right", writingDirection: "rtl" },
-  sectionText: { color: "#8BA4B4", fontSize: 12, lineHeight: 18, marginTop: 3, textAlign: "right", writingDirection: "rtl" },
+  sectionTitle: { color: palette.text, fontSize: 18, fontWeight: "900", textAlign: "right", writingDirection: "rtl" },
+  sectionText: { color: palette.textSoft, fontSize: 12, lineHeight: 18, marginTop: 3, textAlign: "right", writingDirection: "rtl" },
   field: { gap: 7 },
-  fieldLabel: { color: "#C9DCE8", fontSize: 13, fontWeight: "700", textAlign: "right", writingDirection: "rtl" },
-  inputShell: { minHeight: 52, borderRadius: 15, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#214B64", flexDirection: "row", alignItems: "center", paddingHorizontal: 12 },
+  fieldLabel: { color: palette.textMuted, fontSize: 13, fontWeight: "700", textAlign: "right", writingDirection: "rtl" },
+  inputShell: { minHeight: 52, borderRadius: 15, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.borderStrong, flexDirection: "row", alignItems: "center", paddingHorizontal: 12 },
   inputShellMultiline: { alignItems: "flex-start", paddingVertical: 8 },
-  input: { flex: 1, color: "#F1F8FC", fontSize: 14, minHeight: 48, writingDirection: "ltr" },
+  input: { flex: 1, color: palette.text, fontSize: 14, minHeight: 48, writingDirection: "ltr" },
   inputMultiline: { minHeight: 72, writingDirection: "rtl", textAlign: "right", lineHeight: 20 },
   trailingAction: { padding: 6 },
-  toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159", paddingHorizontal: 14, paddingVertical: 13, borderRadius: 16 },
-  toggleCompact: { backgroundColor: "#0B2232", paddingVertical: 10, borderColor: "#17384E" },
+  toggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: palette.card, borderWidth: 1, borderColor: palette.border, paddingHorizontal: 14, paddingVertical: 13, borderRadius: 16 },
+  toggleCompact: { backgroundColor: palette.cardAlt, paddingVertical: 10, borderColor: palette.border },
   toggleCopy: { flex: 1, paddingRight: 12 },
-  toggleLabel: { color: "#F1F8FC", fontSize: 14, fontWeight: "800", writingDirection: "rtl", textAlign: "right" },
-  toggleText: { color: "#8BA4B4", fontSize: 11, lineHeight: 16, marginTop: 3, writingDirection: "rtl", textAlign: "right" },
+  toggleLabel: { color: palette.text, fontSize: 14, fontWeight: "800", writingDirection: "rtl", textAlign: "right" },
+  toggleText: { color: palette.textSoft, fontSize: 11, lineHeight: 16, marginTop: 3, writingDirection: "rtl", textAlign: "right" },
   choiceBlock: { gap: 8 },
   choices: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  choice: { minHeight: 39, paddingHorizontal: 13, borderRadius: 12, borderWidth: 1, borderColor: "#2A5A74", backgroundColor: "#102A3B", alignItems: "center", justifyContent: "center" },
-  choiceActive: { borderColor: "#B8E7FF", backgroundColor: "#1C526E" },
-  choiceText: { color: "#AFC7D5", fontSize: 12, fontWeight: "700" },
-  choiceTextActive: { color: "#FFFFFF" },
-  zoomBlock: { gap: 7, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159", borderRadius: 16, padding: 14 },
+  choice: { minHeight: 39, paddingHorizontal: 13, borderRadius: 12, borderWidth: 1, borderColor: palette.borderStrong, backgroundColor: palette.card, alignItems: "center", justifyContent: "center" },
+  choiceActive: { borderColor: palette.accent, backgroundColor: palette.accentSoft },
+  choiceText: { color: palette.textMuted, fontSize: 12, fontWeight: "700" },
+  choiceTextActive: { color: palette.accent, fontWeight: "900" },
+  zoomBlock: { gap: 7, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.border, borderRadius: 16, padding: 14 },
   zoomHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  zoomValue: { color: "#8EC5FF", fontSize: 16, fontWeight: "900" },
+  zoomValue: { color: palette.accent, fontSize: 16, fontWeight: "900" },
   zoomLabels: { flexDirection: "row", justifyContent: "space-between", marginTop: -3 },
-  zoomHint: { color: "#8BA4B4", fontSize: 11 },
-  actionGroup: { gap: 8, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: "#1B4159", backgroundColor: "#0C2638" },
-  groupTitle: { color: "#8EC5FF", fontSize: 13, fontWeight: "800", textAlign: "right", writingDirection: "rtl", marginBottom: 2 },
-  diagnostic: { gap: 5, padding: 14, borderRadius: 15, backgroundColor: "#102A3B", borderWidth: 1, borderColor: "#1B4159" },
-  diagnosticLabel: { color: "#8BA4B4", fontSize: 11, fontWeight: "700", textAlign: "right", writingDirection: "rtl" },
-  diagnosticValue: { color: "#E5F0F6", fontSize: 13, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
+  zoomHint: { color: palette.textSoft, fontSize: 11 },
+  actionGroup: { gap: 8, padding: 12, borderRadius: 16, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.cardAlt },
+  groupTitle: { color: palette.accent, fontSize: 13, fontWeight: "800", textAlign: "right", writingDirection: "rtl", marginBottom: 2 },
+  diagnostic: { gap: 5, padding: 14, borderRadius: 15, backgroundColor: palette.card, borderWidth: 1, borderColor: palette.border },
+  diagnosticLabel: { color: palette.textSoft, fontSize: 11, fontWeight: "700", textAlign: "right", writingDirection: "rtl" },
+  diagnosticValue: { color: palette.text, fontSize: 13, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
   errorValue: { color: "#FFB4BD" },
-  emptyHistory: { alignItems: "center", gap: 8, padding: 28, borderRadius: 18, backgroundColor: "#10283C", borderWidth: 1, borderColor: "#21516D" },
-  emptyHistoryTitle: { color: "#E5F5FF", fontSize: 15, fontWeight: "900", writingDirection: "rtl" },
-  emptyHistoryText: { color: "#9CB7C8", fontSize: 12, lineHeight: 18, textAlign: "center", writingDirection: "rtl" },
+  emptyHistory: { alignItems: "center", gap: 8, padding: 28, borderRadius: 18, backgroundColor: palette.cardAlt, borderWidth: 1, borderColor: palette.borderStrong },
+  emptyHistoryTitle: { color: palette.text, fontSize: 15, fontWeight: "900", writingDirection: "rtl" },
+  emptyHistoryText: { color: palette.textSoft, fontSize: 12, lineHeight: 18, textAlign: "center", writingDirection: "rtl" },
   historyCard: { flexDirection: "row", gap: 10, padding: 13, borderRadius: 16, borderWidth: 1 },
-  historySuccess: { backgroundColor: "#0D302E", borderColor: "#1E7166" },
-  historyFailure: { backgroundColor: "#36232B", borderColor: "#81505D" },
+  historySuccess: { backgroundColor: palette.success, borderColor: palette.successBorder },
+  historyFailure: { backgroundColor: palette.danger, borderColor: palette.dangerBorder },
   historyIcon: { width: 30, height: 30, borderRadius: 10, backgroundColor: "#071C2C55", alignItems: "center", justifyContent: "center" },
   historyCopy: { flex: 1, gap: 4 },
   historyTop: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
-  historyChannel: { flex: 1, color: "#E6F5FF", fontSize: 12, fontWeight: "800", textAlign: "right", writingDirection: "rtl" },
-  historyTime: { color: "#9CB7C8", fontSize: 10 },
-  historyDetail: { color: "#C2D9E6", fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
-});
+  historyChannel: { flex: 1, color: palette.text, fontSize: 12, fontWeight: "800", textAlign: "right", writingDirection: "rtl" },
+  historyTime: { color: palette.textSoft, fontSize: 10 },
+  historyDetail: { color: palette.textMuted, fontSize: 12, lineHeight: 18, textAlign: "right", writingDirection: "rtl" },
+  });
+}
