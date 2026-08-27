@@ -2,6 +2,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Camera } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -62,6 +63,7 @@ const initialStatus: AgentStatus = {
 
 type Section = "overview" | "telegram" | "camera" | "detection" | "alerts" | "history" | "diagnostics" | "terms";
 type AgentStyles = ReturnType<typeof createAgentStyles>;
+const TERMS_ACCEPTANCE_STORAGE_KEY = "akeer14.agent.terms-acceptance.v1";
 
 const AgentStylesContext = createContext<AgentStyles | null>(null);
 
@@ -429,6 +431,23 @@ function TermsAndConditions() {
   };
   const updatedDate = new Intl.DateTimeFormat("ar-YE", { year: "numeric", month: "long", day: "numeric" }).format(new Date());
   const [expandedSection, setExpandedSection] = useState<string | null>("authorized-use");
+  const [acceptedAt, setAcceptedAt] = useState<string | null>(null);
+  useEffect(() => {
+    let mounted = true;
+    void AsyncStorage.getItem(TERMS_ACCEPTANCE_STORAGE_KEY)
+      .then((value) => { if (mounted && value) setAcceptedAt(value); })
+      .catch(() => undefined);
+    return () => { mounted = false; };
+  }, []);
+  const acceptTerms = () => {
+    const timestamp = new Date().toISOString();
+    setAcceptedAt(timestamp);
+    void AsyncStorage.setItem(TERMS_ACCEPTANCE_STORAGE_KEY, timestamp).catch(() => {
+      setAcceptedAt(null);
+      Alert.alert("تعذر حفظ الموافقة", "حاول مرة أخرى بعد التحقق من مساحة تخزين التطبيق.");
+    });
+    if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
   const terms = [
     { id: "authorized-use", icon: "verified-user", title: "الاستخدام المصرح", text: "استخدم العامل على جهاز تملكه أو لديك تفويض صريح لإدارته. لا تستخدم الكاميرا أو الميكروفون أو التنبيهات لمراقبة الآخرين دون موافقتهم أو بخلاف القوانين المحلية." },
     { id: "evidence-data", icon: "lock", title: "الأدلة والبيانات", text: "تُحفظ بيانات Telegram وGmail ورقم SMS داخل تخزين Android مشفّر. مسؤولية حماية الهاتف وبيانات الاعتماد والمحتوى المسجل تقع على مالك الجهاز." },
@@ -449,6 +468,7 @@ function TermsAndConditions() {
       <ContactAction icon="email" label="البريد الإلكتروني" caption="اضغــط هنــا" onPress={() => openContact("mailto:gbrhomidi@gmail.com")} style={styles.emailAction} />
     </View>
     <View style={styles.termsFooterNote}><MaterialIcons name="info-outline" size={18} color="#FFC776" /><Text style={styles.termsFooterText}>باستمرارك في استخدام النظام، فإنك تؤكد موافقتك الكاملة على هذه الشروط والأحكام.</Text></View>
+    {acceptedAt ? <View style={styles.termsConsentStatus}><MaterialIcons name="verified" size={20} color="#16826A" /><View style={styles.termsConsentCopy}><Text style={styles.termsConsentTitle}>تم تسجيل موافقتك على جميع الشروط</Text><Text style={styles.termsConsentText}>حُفظت الموافقة محليًا على هذا الجهاز.</Text></View></View> : <Pressable accessibilityRole="button" accessibilityLabel="موافق على جميع الشروط" onPress={acceptTerms} style={({ pressed }) => [styles.termsConsentButton, pressed && styles.pressed]}><MaterialIcons name="check-circle" size={21} color="#FFFFFF" /><Text style={styles.termsConsentButtonText}>موافق على جميع الشروط</Text></Pressable>}
     <Text style={styles.lastUpdated}>آخر تحديث: {updatedDate}</Text>
   </View>;
 }
@@ -616,6 +636,12 @@ function createAgentStyles(scheme: ColorScheme) {
   emailAction: { backgroundColor: "#FFC776" },
   termsFooterNote: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 13, borderRadius: 14, backgroundColor: palette.warning, borderWidth: 1, borderColor: palette.warningBorder },
   termsFooterText: { flex: 1, color: palette.text, fontSize: 12, lineHeight: 19, textAlign: "right", writingDirection: "rtl" },
+  termsConsentButton: { minHeight: 52, borderRadius: 16, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, backgroundColor: "#16826A", shadowColor: "#16826A", shadowOpacity: 0.2, shadowRadius: 8, elevation: 2 },
+  termsConsentButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "900", writingDirection: "rtl" },
+  termsConsentStatus: { flexDirection: "row", alignItems: "center", gap: 10, padding: 14, borderRadius: 16, backgroundColor: palette.success, borderWidth: 1, borderColor: palette.successBorder },
+  termsConsentCopy: { flex: 1, gap: 3 },
+  termsConsentTitle: { color: palette.text, fontSize: 13, fontWeight: "900", textAlign: "right", writingDirection: "rtl" },
+  termsConsentText: { color: palette.textMuted, fontSize: 11, textAlign: "right", writingDirection: "rtl" },
   lastUpdated: { color: palette.textSoft, fontSize: 12, textAlign: "center", writingDirection: "rtl", marginTop: 2 },
   sectionStack: { gap: 13 },
   sectionHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10, marginBottom: 2 },

@@ -23,4 +23,13 @@ describe("dark mode contract", () => {
     expect(screen).toContain("backgroundColor: palette.canvas");
     expect(screen).toContain("color: palette.text");
   });
+
+  it("stores the user's affirmative terms consent and presents a confirmed state", () => {
+    const screen = read("app/(tabs)/index.tsx");
+    expect(screen).toContain('TERMS_ACCEPTANCE_STORAGE_KEY = "akeer14.agent.terms-acceptance.v1"');
+    expect(screen).toContain("AsyncStorage.getItem(TERMS_ACCEPTANCE_STORAGE_KEY)");
+    expect(screen).toContain("AsyncStorage.setItem(TERMS_ACCEPTANCE_STORAGE_KEY, timestamp)");
+    expect(screen).toContain("موافق على جميع الشروط");
+    expect(screen).toContain("تم تسجيل موافقتك على جميع الشروط");
+  });
 });
